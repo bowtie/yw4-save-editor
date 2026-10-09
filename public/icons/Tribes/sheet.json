@@ -1,0 +1,77 @@
+{
+  "pages": [
+    { "w": 96, "h": 51, "file": "emblem_0.webp", "icons": { "emblem_0": [0, 0, 96, 51] } },
+    { "w": 96, "h": 90, "file": "emblem_1.webp", "icons": { "emblem_1": [0, 0, 96, 90] } },
+    { "w": 96, "h": 89, "file": "emblem_2.webp", "icons": { "emblem_2": [0, 0, 96, 89] } },
+    { "w": 88, "h": 96, "file": "emblem_3.webp", "icons": { "emblem_3": [0, 0, 88, 96] } },
+    { "w": 79, "h": 96, "file": "emblem_4.webp", "icons": { "emblem_4": [0, 0, 79, 96] } },
+    { "w": 95, "h": 84, "file": "emblem_5.webp", "icons": { "emblem_5": [0, 0, 95, 84] } },
+    { "w": 87, "h": 84, "file": "emblem_6.webp", "icons": { "emblem_6": [0, 0, 87, 84] } },
+    { "w": 96, "h": 95, "file": "emblem_7.webp", "icons": { "emblem_7": [0, 0, 96, 95] } },
+    { "w": 256, "h": 256, "file": "petite_A.webp", "icons": { "petite_A": [0, 0, 256, 256] } },
+    { "w": 256, "h": 256, "file": "petite_B.webp", "icons": { "petite_B": [0, 0, 256, 256] } },
+    { "w": 256, "h": 256, "file": "petite_C.webp", "icons": { "petite_C": [0, 0, 256, 256] } },
+    { "w": 256, "h": 256, "file": "petite_D.webp", "icons": { "petite_D": [0, 0, 256, 256] } },
+    { "w": 256, "h": 256, "file": "petite_E.webp", "icons": { "petite_E": [0, 0, 256, 256] } },
+    { "w": 256, "h": 256, "file": "petite_S.webp", "icons": { "petite_S": [0, 0, 256, 256] } },
+    { "w": 96, "h": 96, "file": "rank_A.png", "icons": { "rank_A": [0, 0, 96, 96] } },
+    { "w": 98, "h": 98, "file": "rank_B.png", "icons": { "rank_B": [0, 0, 98, 98] } },
+    { "w": 98, "h": 98, "file": "rank_C.png", "icons": { "rank_C": [0, 0, 98, 98] } },
+    { "w": 98, "h": 98, "file": "rank_D.png", "icons": { "rank_D": [0, 0, 98, 98] } },
+    { "w": 98, "h": 98, "file": "rank_E.png", "icons": { "rank_E": [0, 0, 98, 98] } },
+    { "w": 104, "h": 104, "file": "rank_S.png", "icons": { "rank_S": [0, 0, 104, 104] } },
+    {
+      "w": 110,
+      "h": 85,
+      "file": "uwanosora_soul.png",
+      "icons": { "uwanosora_soul": [0, 0, 110, 85] }
+    },
+    {
+      "w": 128,
+      "h": 128,
+      "file": "race_Goriki.webp",
+      "icons": { "race_Goriki": [0, 0, 128, 128] }
+    },
+    { "w": 128, "h": 128, "file": "race_Onnen.webp", "icons": { "race_Onnen": [0, 0, 128, 128] } },
+    {
+      "w": 128,
+      "h": 128,
+      "file": "race_Mononoke.webp",
+      "icons": { "race_Mononoke": [0, 0, 128, 128] }
+    },
+    {
+      "w": 128,
+      "h": 128,
+      "file": "race_Tsukumono.webp",
+      "icons": { "race_Tsukumono": [0, 0, 128, 128] }
+    },
+    {
+      "w": 128,
+      "h": 128,
+      "file": "race_Uwanosora.webp",
+      "icons": { "race_Uwanosora": [0, 0, 128, 128] }
+    },
+    {
+      "w": 128,
+      "h": 128,
+      "file": "race_Omamori.webp",
+      "icons": { "race_Omamori": [0, 0, 128, 128] }
+    },
+    {
+      "w": 128,
+      "h": 128,
+      "file": "race_Mikado.webp",
+      "icons": { "race_Mikado": [0, 0, 128, 128] }
+    },
+    { "w": 128, "h": 128, "file": "race_Izana.webp", "icons": { "race_Izana": [0, 0, 128, 128] } },
+    { "w": 128, "h": 128, "file": "race_Oni.webp", "icons": { "race_Oni": [0, 0, 128, 128] } },
+    { "w": 128, "h": 128, "file": "race_Kaima.webp", "icons": { "race_Kaima": [0, 0, 128, 128] } },
+    { "w": 128, "h": 128, "file": "race_Sinma.webp", "icons": { "race_Sinma": [0, 0, 128, 128] } },
+    {
+      "w": 128,
+      "h": 128,
+      "file": "race_Mikakunin.webp",
+      "icons": { "race_Mikakunin": [0, 0, 128, 128] }
+    }
+  ]
+}

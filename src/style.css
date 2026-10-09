@@ -1,0 +1,58 @@
+@import "@heroui/react/styles";
+@import "slot-text/style.css";
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* The theme ships a borderless field design: field background equals the card
+   surface and the border is transparent, so editable inputs are invisible
+   until focused. Give every field a visible outline and a raised surface. */
+.dark {
+  --field-border-width: 1px;
+  --field-border: color-mix(in oklab, var(--foreground) 16%, transparent);
+  --field-background: color-mix(in oklab, var(--surface-secondary) 60%, var(--surface));
+}
+
+/* Protagonist dot sprites: the sheet's frame B is the game's "dip" pose —
+   the same character drawn with the head ~4px lower, feet on the same line
+   (the native 16_icon_minichr textures carry the exact same offset). The
+   frames swap instantly, matching the game's own two-frame idle: the head
+   dip between them is the animation, not a crop misalignment. */
+.player-idle-a {
+  animation: player-idle-a 1.6s steps(1, end) infinite;
+}
+
+.player-idle-b {
+  animation: player-idle-b 1.6s steps(1, end) infinite;
+}
+
+@keyframes player-idle-a {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes player-idle-b {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-idle-a {
+    animation: none;
+  }
+
+  .player-idle-b {
+    animation: none;
+    opacity: 0;
+  }
+}

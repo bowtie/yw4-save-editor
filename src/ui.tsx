@@ -1,0 +1,680 @@
+/** Game-art image helpers and small shared bits for the panels. */
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Input,
+  InputGroupInput,
+  InputGroupPrefix,
+  InputGroupRoot,
+  InputGroupSuffix,
+} from "@heroui/react";
+import { SlotText } from "slot-text/react";
+import { play } from "cuelume";
+import { MinusIcon, PlusIcon } from "./icons";
+import type { ItemCategory } from "./lib/item-data";
+
+/** Category → art folder inside the deployed `icons/` tree. */
+const CATEGORY_FOLDERS: Record<ItemCategory, string> = {
+  consumable: "Items",
+  key: "Items",
+  equipment: "Equipments",
+  soul: "Yokai",
+  yokaisoul: "Yokai",
+};
+
+/** URL of an icon under `icons/<Folder>/<Name>.webp`; names are encoded. */
+export function artUrl(folder: string, name: string): string {
+  return new URL(`icons/${folder}/${encodeURIComponent(name)}.webp`, document.baseURI).href;
+}
+
+/* ── Sprite-sheet backed icons ──────────────────────────────────────────────
+ *  Each art folder ships as one packed sheet.webp + sheet.json manifest
+ *  (tools/g4tx/build_sprite_sheets.py).  GameIcon resolves names against the
+ *  manifest and draws the right region with CSS background positioning, so a
+ *  whole folder costs a single request instead of one per icon. */
+
+interface SpritePage {
+  w: number;
+  h: number;
+  file: string;
+  icons: Record<string, [number, number, number, number]>;
+}
+
+interface SpriteManifest {
+  pages: SpritePage[];
+}
+
+const manifestCache = new Map<string, Promise<SpriteManifest | null>>();
+
+function loadManifest(folder: string): Promise<SpriteManifest | null> {
+  let p = manifestCache.get(folder);
+  if (!p) {
+    p = fetch(new URL(`icons/${folder}/sheet.json`, document.baseURI).href, {
+      cache: "no-cache",
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<SpriteManifest>) : null))
+      .catch(() => null);
+    manifestCache.set(folder, p);
+  }
+  return p;
+}
+
+function sheetUrl(folder: string, file: string): string {
+  return new URL(`icons/${folder}/${file}`, document.baseURI).href;
+}
+
+/** Display pixel size from a Tailwind `size-<n>` class (n × 0.25rem). */
+function displayPx(className: string): number {
+  const m = /(?:^|\s)size-(\d+)(?:$|\s)/.exec(className);
+  return (m ? Number(m[1]) : 8) * 4;
+}
+
+/** A tile icon drawn from the folder's sprite sheet; swaps itself for a
+ *  blank tile when the manifest has no art for the name (or falls back to
+ *  the loose file if the sheet itself is unavailable). */
+export function GameIcon({
+  folder,
+  name,
+  alt = "",
+  className = "size-8 shrink-0 rounded-lg bg-surface-secondary object-contain p-0.5",
+  inset = 0,
+}: {
+  folder: string;
+  name: string;
+  alt?: string;
+  className?: string;
+  /** Shrink the art by this many px per side inside the box (the tile
+   *  background still fills the box). 0 = art fills the box. */
+  inset?: number;
+}) {
+  const [manifest, setManifest] = useState<SpriteManifest | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    loadManifest(folder).then((m) => {
+      if (alive) setManifest(m);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [folder]);
+
+  if (manifest === undefined) return <span className={className} aria-hidden />;
+  if (manifest === null) {
+    // sheet unavailable — legacy per-file fallback
+    return <LooseIcon folder={folder} name={name} alt={alt} className={className} />;
+  }
+  // Boss "friend form" models (y03030000_friend) share the base model's art;
+  // fall back when the sheet lacks the suffixed key.
+  const key = manifest.pages.some((pg) => name in pg.icons) ? name : name.replace(/_[a-z]+$/, "");
+  const page = manifest.pages.find((pg) => key in pg.icons);
+  if (!page) return <span className={className} aria-hidden />;
+  const rect = page.icons[key];
+
+  const px = displayPx(className);
+  const inner = Math.max(1, px - inset * 2);
+  const scale = inner / Math.max(rect[2], rect[3]);
+  const [x, y, w, h] = rect;
+  // contain-scale the whole page, then offset so the icon's own cell sits
+  // centered in the box (same visual as object-contain on a loose file).
+  const bgW = page.w * scale;
+  const bgH = page.h * scale;
+  const posX = (px - w * scale) / 2 - x * scale;
+  const posY = (px - h * scale) / 2 - y * scale;
+  return (
+    <span
+      className={className}
+      role={alt ? "img" : undefined}
+      aria-label={alt || undefined}
+      aria-hidden={alt ? undefined : true}
+      style={{
+        backgroundImage: `url(${JSON.stringify(sheetUrl(folder, page.file))})`,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: `${bgW}px ${bgH}px`,
+        backgroundPosition: `${posX}px ${posY}px`,
+      }}
+    />
+  );
+}
+
+/** Legacy per-file icon used when a folder has no sprite sheet. */
+function LooseIcon({
+  folder,
+  name,
+  alt,
+  className,
+}: {
+  folder: string;
+  name: string;
+  alt: string;
+  className: string;
+}) {
+  const [ok, setOk] = useState(true);
+  if (!ok) return <span className={className} aria-hidden />;
+  return (
+    <img
+      src={artUrl(folder, name)}
+      alt={alt}
+      loading="lazy"
+      className={className}
+      onError={() => setOk(false)}
+    />
+  );
+}
+
+/** Item catalog icon (category decides the folder). */
+export function ItemIcon({ name, category }: { name: string; category: ItemCategory }) {
+  return <GameIcon folder={CATEGORY_FOLDERS[category]} name={name} />;
+}
+
+/** Item rarity as the game's list UI shows it: 1-4 gold stars, 5 pink. */
+export function RarityStars({ rarity }: { rarity: number }) {
+  const stars = Math.max(1, Math.min(5, rarity));
+  const filled = stars >= 5 ? "text-[#f263ad]" : "text-warning";
+  return (
+    <span
+      className="shrink-0 text-[11px] leading-none tracking-widest"
+      title={`${stars}-star`}
+      aria-label={`${stars}-star rarity`}
+    >
+      <span className={filled}>{"★".repeat(stars)}</span>
+      <span className="text-muted opacity-40">{"★".repeat(5 - stars)}</span>
+    </span>
+  );
+}
+
+/* ── Protagonist dot sprites ──────────────────────────────────────────────── */
+
+/** Protagonist idle sprites in two sizes cut from the game's 16_icon_minichr
+ *  art (sheets built by hand; backdrop keyed, frames measured into
+ *  players.json). Each variant renders 1:1 in a tile sized to its sprite —
+ *  dot art only stays crisp at integer ratios. */
+interface PlayerCell {
+  a: [number, number, number, number];
+  b: [number, number, number, number];
+  /** Union content bbox of both frames, absolute sheet coords — the art is
+   *  not centered inside its cell (bottom-flush, ±1px drifts), so tiles seat
+   *  this box rather than the cell rectangle. */
+  box: [number, number, number, number];
+}
+
+type PlayerVariant = "2x" | "1x";
+
+const PLAYER_VARIANTS: Record<PlayerVariant, { url: string; tile: number }> = {
+  "2x": { url: new URL("icons/players/sheet_2x.png", document.baseURI).href, tile: 72 },
+  "1x": { url: new URL("icons/players/sheet_1x.png", document.baseURI).href, tile: 36 },
+};
+
+/** Full sheet dimensions, for background-size math when upscaling. */
+const SHEET_SIZE: Record<PlayerVariant, { w: number; h: number }> = {
+  "2x": { w: 70, h: 360 },
+  "1x": { w: 35, h: 180 },
+};
+
+let playerManifest: Promise<Record<PlayerVariant, Record<string, PlayerCell>>> | null = null;
+function loadPlayerManifest() {
+  playerManifest ??= fetch(new URL("icons/players/players.json", document.baseURI).href, {
+    cache: "no-cache",
+  })
+    .then((r) => {
+      if (!r.ok) throw new Error("player sheet manifest missing");
+      return r.json() as Promise<Record<PlayerVariant, { chars: Record<string, PlayerCell> }>>;
+    })
+    .then((j) => ({ "2x": j["2x"].chars, "1x": j["1x"].chars }));
+  return playerManifest;
+}
+
+function usePlayerCell(name: string, variant: PlayerVariant): PlayerCell | null {
+  const [cell, setCell] = useState<PlayerCell | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadPlayerManifest()
+      .then((m) => {
+        if (alive) setCell(m[variant][name] ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [name, variant]);
+  return cell;
+}
+
+export function PlayerSprite({
+  name,
+  variant = "2x",
+  scale = 1,
+  frame = true,
+}: {
+  name: string;
+  variant?: PlayerVariant;
+  /** Integer magnification of the sheet art — fractional scales wobble. */
+  scale?: number;
+  /** false = bare sprite (no tile backdrop), sized to frame A; the parent
+   *  supplies the backdrop. Feet stay planted across the idle flip. */
+  frame?: boolean;
+}) {
+  const cell = usePlayerCell(name, variant);
+  const { url, tile } = PLAYER_VARIANTS[variant];
+  const sheet = SHEET_SIZE[variant];
+  if (!cell) {
+    return (
+      <span
+        className="relative inline-block shrink-0 rounded-lg bg-surface-secondary"
+        style={{ width: tile * scale, height: tile * scale }}
+        aria-hidden
+      />
+    );
+  }
+  // Seat the content box, not the cell rectangle. The box is frame A's art
+  // extent relative to its cell; frame B sits at the same offset inside its
+  // own cell, so both layers render at the SAME position and the idle swap
+  // can't move the sprite.
+  const [ax, ay] = cell.a;
+  const [bx, by, bw, bh] = cell.box ?? [ax, ay, cell.a[2], cell.a[3]];
+  const layer = (f: "a" | "b", left: number, top: number) => {
+    const [x, y, w, h] = cell[f];
+    return (
+      <span
+        key={f}
+        className={`absolute player-idle-${f}`}
+        style={{
+          width: w * scale,
+          height: h * scale,
+          left,
+          top,
+          backgroundImage: `url(${url})`,
+          backgroundRepeat: "no-repeat",
+          backgroundSize: `${sheet.w * scale}px ${sheet.h * scale}px`,
+          backgroundPosition: `${-x * scale}px ${-y * scale}px`,
+          imageRendering: "pixelated",
+        }}
+      />
+    );
+  };
+  if (!frame) {
+    // Bare sprite: the box itself is the element, so the parent's centering
+    // centers the art. Cell rects are shifted so the box lands at (0, 0).
+    return (
+      <span
+        className="relative inline-block shrink-0"
+        style={{ width: bw * scale, height: bh * scale }}
+        aria-hidden
+      >
+        {layer("a", -bx * scale, -by * scale)}
+        {layer("b", -bx * scale, -by * scale)}
+      </span>
+    );
+  }
+  const left = ((tile - bw) / 2 - bx) * scale;
+  const top = ((tile - bh) / 2 - by) * scale;
+  return (
+    <span
+      className="relative inline-block shrink-0 overflow-hidden rounded-lg bg-surface-secondary"
+      style={{ width: tile * scale, height: tile * scale }}
+      aria-hidden
+    >
+      {layer("a", left, top)}
+      {layer("b", left, top)}
+    </span>
+  );
+}
+
+/* ── Protagonist portrait badges ──────────────────────────────────────────── */
+
+/** Accent tints for the six protagonists — badge gradients, borders and EXP
+ *  bar fills all key off these. Shin is Shin Shimomachi (EN: Jack Cobbler);
+ *  denim blue after his hair and striped shirt. */
+export const PLAYER_ACCENTS: Record<string, string> = {
+  Nate: "#e5484d",
+  Katie: "#e93d82",
+  Summer: "#f76b15",
+  Touma: "#14b8a6",
+  Akinori: "#8e4ec6",
+  Shin: "#4a7ebb",
+};
+
+/** The rounded accent-tinted portrait badge; shared by the Characters tiles
+ *  and the Player name rows so both pages present protagonists identically. */
+export function Portrait({ name, size = 72 }: { name: string; size?: number }) {
+  const accent = PLAYER_ACCENTS[name] ?? "#3e63dd";
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center self-start rounded-xl border-2"
+      style={{
+        width: size,
+        height: size,
+        background: `linear-gradient(180deg, ${accent}36, ${accent}0a)`,
+        borderColor: `color-mix(in oklab, ${accent} 40%, #0d0a0c)`,
+      }}
+    >
+      <PlayerSprite name={name} variant="2x" scale={1} frame={false} />
+    </div>
+  );
+}
+
+/* ── Rolling stepper ─────────────────────────────────────────────────────── */
+
+/** The shared −/+ stepper used for money, character stats and crank attempts:
+ *  tap for ±step, HOLD to accelerate — the step scales ×10 every half second
+ *  the button stays down, so any magnitude is a short hold away. Rolling
+ *  slot-text display with a cuelume tick per commit; click the number to type
+ *  an exact value. Clamped to [min, max]. */
+export function RollStepper({
+  value,
+  step,
+  max,
+  min = 0,
+  onCommit,
+  className,
+  ariaLabel,
+  bare = false,
+  disabled = false,
+}: {
+  value: number;
+  step: number;
+  max: number;
+  min?: number;
+  onCommit: (v: number) => void;
+  className?: string;
+  ariaLabel: string;
+  /** Transparent field chrome, for mounting the stepper over a progress bar. */
+  bare?: boolean;
+  /** Locked: no buttons, no click-to-edit, muted display. */
+  disabled?: boolean;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [direction, setDirection] = useState<"up" | "down">("up");
+  // Latest committed value; repeated commits during a hold build on it
+  // without waiting for the parent to re-render.
+  const running = useRef(0);
+  const holdTimer = useRef<number | null>(null);
+  const lastPointer = useRef(0);
+  const clamp = (v: number) => Math.max(min, Math.min(max, v));
+
+  const commit = (next: number) => {
+    if (next === running.current) return;
+    setDirection(next > running.current ? "up" : "down");
+    play("tick");
+    running.current = next;
+    onCommit(next);
+  };
+
+  const endHold = () => {
+    if (holdTimer.current !== null) {
+      window.clearInterval(holdTimer.current);
+      holdTimer.current = null;
+    }
+    window.removeEventListener("pointerup", endHold);
+    window.removeEventListener("pointercancel", endHold);
+  };
+
+  const beginHold = (dir: 1 | -1) => {
+    endHold();
+    running.current = value;
+    lastPointer.current = Date.now();
+    commit(clamp(value + dir * step));
+    const startedAt = lastPointer.current;
+    window.addEventListener("pointerup", endHold);
+    window.addEventListener("pointercancel", endHold);
+    holdTimer.current = window.setInterval(() => {
+      const heldMs = Date.now() - startedAt;
+      if (heldMs < 400) return;
+      const mult = Math.min(10 ** Math.floor((heldMs - 400) / 500), 1e9);
+      commit(clamp(running.current + dir * step * mult));
+    }, 100);
+  };
+
+  useEffect(() => endHold, []);
+
+  const btn = "flex size-5 items-center justify-center rounded-small p-0 text-muted";
+  const holdButton = (dir: 1 | -1, glyph: React.ReactNode) => (
+    <button
+      type="button"
+      className={btn}
+      disabled={dir > 0 ? value >= max : value <= min}
+      onPointerDown={() => {
+        lastPointer.current = Date.now();
+        beginHold(dir);
+      }}
+      // The click after a held pointer is redundant; a keyboard Enter/Space
+      // has no pointerdown, so it still counts as a single step.
+      onClick={() => {
+        if (Date.now() - lastPointer.current < 600) return;
+        running.current = value;
+        commit(clamp(value + dir * step));
+      }}
+      aria-label={`${dir > 0 ? "Add" : "Remove"} ${step} ${ariaLabel}`}
+    >
+      {glyph}
+    </button>
+  );
+
+  return (
+    <InputGroupRoot
+      className={className ?? "w-full"}
+      style={bare ? { background: "transparent", border: "none", boxShadow: "none" } : undefined}
+    >
+      {!disabled && (
+        <InputGroupPrefix className="flex items-center px-1">
+          {holdButton(-1, <MinusIcon size={12} />)}
+        </InputGroupPrefix>
+      )}
+      {editing ? (
+        <InputGroupInput
+          autoFocus
+          type="number"
+          aria-label={ariaLabel}
+          style={bare ? { background: "transparent" } : undefined}
+          className="w-0 min-w-0 flex-1 text-center font-mono [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          value={text ?? String(value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            const n = Math.floor(Number(e.target.value));
+            if (e.target.value !== "" && Number.isInteger(n)) onCommit(clamp(n));
+          }}
+          onBlur={() => {
+            setText(null);
+            setEditing(false);
+          }}
+        />
+      ) : (
+        <button
+          type="button"
+          aria-label={`Edit ${ariaLabel}`}
+          className="w-0 min-w-0 flex-1 text-center font-mono text-sm"
+          disabled={disabled}
+          onClick={() => {
+            if (!disabled) setEditing(true);
+          }}
+        >
+          <span className={disabled ? "text-muted" : undefined}>
+            <SlotText
+              text={value.toLocaleString("en-US")}
+              options={{
+                direction,
+                duration: 180,
+                stagger: 24,
+                // No bounce: the default springy overshoot stacks two half
+                // digits in a cell mid-roll, which reads as a broken number.
+                bounce: 0,
+                easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+              }}
+            />
+          </span>
+        </button>
+      )}
+      {!disabled && (
+        <InputGroupSuffix className="flex items-center px-1">
+          {holdButton(1, <PlusIcon size={12} />)}
+        </InputGroupSuffix>
+      )}
+    </InputGroupRoot>
+  );
+}
+
+/** Clamp an integer typed into a field; NaN/empty falls back to min. */
+export function clampInt(text: string, min: number, max: number): number {
+  const n = Math.floor(Number(text));
+  if (Number.isNaN(n)) return min;
+  return Math.max(min, Math.min(max, n));
+}
+
+/** Minimal overlay-state object satisfying HeroUI's Modal `state` prop. */
+export function useOverlayState(initial = false) {
+  const [isOpen, setOpen] = useState(initial);
+  return useMemo(
+    () => ({
+      isOpen,
+      setOpen,
+      open: () => setOpen(true),
+      close: () => setOpen(false),
+      toggle: () => setOpen((v) => !v),
+    }),
+    [isOpen],
+  );
+}
+
+const ERROR_RING = "border-danger focus:border-danger";
+
+/**
+ * Label-free validated integer input: in-range input commits immediately,
+ * out-of-range input keeps a red border + message and never reaches the
+ * serializer. The displayed value snaps back to the committed one on blur.
+ */
+export function ValidatedNumber({
+  ariaLabel,
+  value,
+  min = 0,
+  max,
+  onCommit,
+  className = "w-full font-mono",
+}: {
+  ariaLabel: string;
+  value: number;
+  min?: number;
+  max: number;
+  onCommit: (v: number) => void;
+  className?: string;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  const shown = text ?? String(value);
+  const parsed = Number(shown);
+  const isInt = Number.isInteger(parsed);
+  const invalid = text !== null && (!isInt || parsed < min || parsed > max);
+  return (
+    <div className="min-w-0">
+      <Input
+        type="number"
+        aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
+        className={`${className} ${invalid ? ERROR_RING : ""}`}
+        value={shown}
+        title={`Range ${min.toLocaleString()}-${max.toLocaleString()}`}
+        onChange={(e) => {
+          setText(e.target.value);
+          const n = Math.floor(Number(e.target.value));
+          if (e.target.value !== "" && Number.isInteger(n) && n >= min && n <= max) {
+            onCommit(n);
+          }
+        }}
+        onBlur={() => setText(null)}
+      />
+      {invalid && (
+        <p className="mt-0.5 text-xs text-danger">
+          {!isInt
+            ? "Not a whole number"
+            : `Must be ${min.toLocaleString()}-${max.toLocaleString()}`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Integer field with inline validation: in-range input commits immediately,
+ * out-of-range input keeps a red border + message and never reaches the
+ * serializer. The displayed value snaps back to the committed one on blur.
+ */
+export function NumberField({
+  label,
+  value,
+  min = 0,
+  max,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  min?: number;
+  max: number;
+  onCommit: (v: number) => void;
+}) {
+  return (
+    <LabeledHint label={label}>
+      <ValidatedNumber
+        ariaLabel={label}
+        value={value}
+        min={min}
+        max={max}
+        onCommit={onCommit}
+        className="w-full font-mono"
+      />
+    </LabeledHint>
+  );
+}
+
+/**
+ * Text field for in-game names: commits every input that fits the slot's
+ * byte budget (names are UTF-8 in the save, so multibyte characters count
+ * against the limit), and flags overlong input inline without writing it.
+ */
+export function NameField({
+  label,
+  value,
+  maxBytes,
+  onCommit,
+  className = "w-full",
+}: {
+  label: string;
+  value: string;
+  maxBytes: number;
+  onCommit: (v: string) => void;
+  className?: string;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  const shown = text ?? value;
+  const bytes = new TextEncoder().encode(shown).length;
+  const invalid = bytes > maxBytes;
+
+  return (
+    <div className="min-w-0 flex-1">
+      <Input
+        aria-label={label}
+        aria-invalid={invalid || undefined}
+        className={`${className} ${invalid ? ERROR_RING : ""}`}
+        value={shown}
+        title={`Max ${maxBytes} bytes (UTF-8)`}
+        onChange={(e) => {
+          setText(e.target.value);
+          if (new TextEncoder().encode(e.target.value).length <= maxBytes) onCommit(e.target.value);
+        }}
+        onBlur={() => setText(null)}
+      />
+      {invalid && (
+        <p className="mt-0.5 text-xs text-danger">
+          {bytes}/{maxBytes} bytes, {bytes - maxBytes} too many. Some characters count as more than
+          one.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Inline label + control row used across the panels. */
+export function LabeledHint({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex items-center gap-2 text-xs text-muted">
+      <span className="whitespace-nowrap">{label}</span>
+      {children}
+    </label>
+  );
+}

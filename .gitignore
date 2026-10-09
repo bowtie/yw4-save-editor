@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.vite-hooks/
+*.local
+.DS_Store
+
+# Local research scratch space: extracted game data, dumped assets, throwaway
+# images. Not part of the build.
+research/
+
+# Belt and braces in case more scratch files land at the repo root.
+.scratch_*
+.tmp_*
+.tmp-*
+
+# Reverse-engineering toolkit. Kept out of the repo: it holds ~185 MB of
+# extracted game art, real save dumps, and vendored third-party binaries.
+tools/
+
+# One-off data porting scripts, superseded by the checked-in src/lib tables.
+scripts/
