@@ -338,7 +338,7 @@ export function Portrait({ name, size = 72 }: { name: string; size?: number }) {
   const accent = PLAYER_ACCENTS[name] ?? "#3e63dd";
   return (
     <div
-      className="flex shrink-0 items-center justify-center self-start rounded-xl border-2"
+      className="flex shrink-0 items-center justify-center self-center rounded-xl border-2"
       style={{
         width: size,
         height: size,
@@ -367,6 +367,7 @@ export function RollStepper({
   className,
   ariaLabel,
   bare = false,
+  compact = false,
   disabled = false,
 }: {
   value: number;
@@ -378,6 +379,8 @@ export function RollStepper({
   ariaLabel: string;
   /** Transparent field chrome, for mounting the stepper over a progress bar. */
   bare?: boolean;
+  /** Tighter −/+ buttons, for narrow grids where the number needs the room. */
+  compact?: boolean;
   /** Locked: no buttons, no click-to-edit, muted display. */
   disabled?: boolean;
 }) {
@@ -426,7 +429,8 @@ export function RollStepper({
 
   useEffect(() => endHold, []);
 
-  const btn = "flex size-5 items-center justify-center rounded-small p-0 text-muted";
+  const btn = `flex ${compact ? "size-4" : "size-5"} items-center justify-center rounded-small p-0 text-muted`;
+  const pad = compact ? "px-0.5" : "px-1";
   const holdButton = (dir: 1 | -1, glyph: React.ReactNode) => (
     <button
       type="button"
@@ -455,7 +459,7 @@ export function RollStepper({
       style={bare ? { background: "transparent", border: "none", boxShadow: "none" } : undefined}
     >
       {!disabled && (
-        <InputGroupPrefix className="flex items-center px-1">
+        <InputGroupPrefix className={`flex items-center ${pad}`}>
           {holdButton(-1, <MinusIcon size={12} />)}
         </InputGroupPrefix>
       )}
@@ -481,7 +485,7 @@ export function RollStepper({
         <button
           type="button"
           aria-label={`Edit ${ariaLabel}`}
-          className="w-0 min-w-0 flex-1 text-center font-mono text-sm"
+          className={`w-0 min-w-0 flex-1 text-center font-mono ${compact ? "text-xs" : "text-sm"}`}
           disabled={disabled}
           onClick={() => {
             if (!disabled) setEditing(true);
@@ -504,7 +508,7 @@ export function RollStepper({
         </button>
       )}
       {!disabled && (
-        <InputGroupSuffix className="flex items-center px-1">
+        <InputGroupSuffix className={`flex items-center ${pad}`}>
           {holdButton(1, <PlusIcon size={12} />)}
         </InputGroupSuffix>
       )}

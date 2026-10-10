@@ -124,7 +124,7 @@ function LedgerTile({
         )}
       </div>
       {soul && (
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-1">
           {TIERS.map(({ which, dot }) => (
             <div key={which} className="flex min-w-0 flex-col gap-1">
               <span className="flex items-center gap-1 text-xs text-muted">
@@ -132,6 +132,7 @@ function LedgerTile({
                 {TIER_LABELS[which]}
               </span>
               <RollStepper
+                compact
                 className="w-full"
                 value={soul[which]}
                 step={1}
