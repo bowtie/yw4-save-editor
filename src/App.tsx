@@ -229,14 +229,9 @@ export default function Editor() {
     <div className="mx-auto w-full max-w-3xl px-6 py-10">
       <header className="mb-6 flex items-center gap-4">
         <img src={WATCH_UP_ICON} alt="" className="size-12 shrink-0 object-contain" />
-        <div>
-          <h1 className="text-2xl font-bold leading-tight tracking-tight">
-            Yo-kai Watch 4++ Save Editor
-          </h1>
-          <p className="mt-0.5 text-sm text-muted">
-            Edit Nintendo Switch and PS4 saves right here in your browser.
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold leading-tight tracking-tight">
+          Yo-kai Watch 4++ Save Editor
+        </h1>
       </header>
 
       <main className="flex flex-col gap-4">
