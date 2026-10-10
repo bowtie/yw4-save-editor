@@ -10,7 +10,6 @@ import type { ParsedSave } from "./lib/save-format";
 import { ExpStepper, Portrait, PLAYER_ACCENTS, RollStepper } from "./ui";
 import { nameForParam } from "./lib/characters";
 import { expToNext, LEVEL_CAP } from "./lib/exp-curve";
-import { LockIcon } from "./icons";
 
 const SPRITE_NAMES = ["Nate", "Summer", "Touma", "Akinori", "Katie", "Shin"];
 
@@ -35,38 +34,46 @@ function CharacterTile({
   const accent = PLAYER_ACCENTS[spriteName] ?? "#3e63dd";
 
   // Same bordered box as the Player tab's name rows; unacquired slots get a
-  // dashed border and no inputs.
+  // dashed border, a greyed portrait and no inputs.
   return (
     <div
       className={`flex min-w-0 items-center gap-3 rounded-xl border bg-surface-secondary/50 p-1.5 pr-2.5 ${
         acquired ? "border-border" : "border-dashed border-border"
       }`}
     >
-      <Portrait name={spriteName} />
+      <div className={acquired ? "self-center" : "self-center opacity-50 grayscale"}>
+        <Portrait name={spriteName} />
+      </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="truncate text-sm font-semibold">{displayName}</p>
         {acquired ? (
           <>
-            <RollStepper
-              value={slot.level}
-              step={1}
-              max={LEVEL_CAP}
-              ariaLabel="Level"
-              onCommit={(v) => onCommit(slot.index, { level: v })}
-            />
-            <ExpStepper
-              xp={slot.xp}
-              toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1))}
-              maxed={slot.level >= LEVEL_CAP}
-              accent={accent}
-              onCommit={(v) => onCommit(slot.index, { xp: v })}
-            />
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <span className="w-7 shrink-0">Lv</span>
+              <RollStepper
+                className="min-w-0 flex-1"
+                value={slot.level}
+                step={1}
+                max={LEVEL_CAP}
+                ariaLabel="Level"
+                onCommit={(v) => onCommit(slot.index, { level: v })}
+              />
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <span className="w-7 shrink-0">EXP</span>
+              <div className="min-w-0 flex-1">
+                <ExpStepper
+                  xp={slot.xp}
+                  toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1))}
+                  maxed={slot.level >= LEVEL_CAP}
+                  accent={accent}
+                  onCommit={(v) => onCommit(slot.index, { xp: v })}
+                />
+              </div>
+            </div>
           </>
         ) : (
-          <p className="flex items-center gap-1.5 text-xs text-muted">
-            <LockIcon size={13} />
-            Joins your party in-game. Not editable until then.
-          </p>
+          <p className="text-xs text-muted">Not in your party yet</p>
         )}
       </div>
     </div>
