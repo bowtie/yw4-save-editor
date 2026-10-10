@@ -10,6 +10,8 @@ import { yokaiNameFor } from "./lib/yokai";
 import { nameForParam } from "./lib/characters";
 import { PLAYABLE_YOKAI, type PlayableYokai } from "./lib/yokai-playable";
 import { yokaiExpRate } from "./lib/yokai-curve";
+import { yokaiTribe } from "./lib/yokai-base";
+import { modelParamId, tribeInfo } from "./lib/tribes";
 import { EXP_RATES, LEVEL_CAP, expToNext } from "./lib/exp-curve";
 import { YOKAI_MOVES } from "./lib/yokai-moves";
 import type { ParsedSave } from "./lib/save-format";
@@ -45,6 +47,10 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
 
   const species = slot ? speciesFor(slot) : null;
   const iconFor = (s: PartySlot): string => rosterById.get(s.speciesId)?.icon ?? "";
+  /** Tribe tints the EXP bar the color of its emblem. The tribe table keys
+   *  on crc32 of the model name, not the slot's species signature. */
+  const tribe =
+    slot && iconFor(slot) ? tribeInfo(yokaiTribe(modelParamId(iconFor(slot)))) : undefined;
   /** This species' growth rate (per-species ExperienceCurve class). */
   const expRate = slot ? yokaiExpRate(slot.speciesId, EXP_RATES) : EXP_RATES[0];
 
@@ -159,13 +165,11 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                           />
                           <span className="min-w-0 flex-1 truncate text-sm">{y.name}</span>
                           {copies > 0 ? (
-                            <span className="shrink-0 rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+                            <span className="shrink-0 rounded-full bg-accent-soft px-1.5 py-0.5 text-xs font-semibold text-accent">
                               Owned ×{copies}
                             </span>
                           ) : null}
-                          <span className="shrink-0 font-mono text-[10px] text-muted">
-                            No.{y.no}
-                          </span>
+                          <span className="shrink-0 font-mono text-xs text-muted">No.{y.no}</span>
                         </button>
                       );
                     })
@@ -218,16 +222,27 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{species}</p>
-                    <p className="text-xs text-muted">Slot {slot.index + 1}</p>
+                    <p className="flex items-center gap-1.5 text-xs text-muted">
+                      {tribe && (
+                        <GameIcon
+                          folder="Tribes"
+                          name={tribe.emblem}
+                          alt={`${tribe.name} tribe`}
+                          className="size-4 shrink-0 object-contain"
+                        />
+                      )}
+                      {tribe ? `${tribe.name} · ` : ""}Slot {slot.index + 1}
+                    </p>
                   </div>
                   <Button
                     size="sm"
                     variant="ghost"
+                    isIconOnly
                     className="shrink-0 text-danger"
                     aria-label={`Remove ${species}`}
                     onPress={() => removeYoKai(slot)}
                   >
-                    <TrashIcon size={14} /> Remove
+                    <TrashIcon size={15} />
                   </Button>
                 </div>
 
@@ -261,6 +276,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                       xp={slot.xp}
                       toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1), expRate)}
                       maxed={slot.level >= LEVEL_CAP}
+                      accent={tribe?.color}
                       onCommit={(v) => patch({ xp: v })}
                     />
                   </div>
