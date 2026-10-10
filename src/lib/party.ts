@@ -2,9 +2,9 @@
  *
  *  Layout ported from the reference editor AYw4SaveEditor: both tables are
  *  469-byte slots in the bulk region with an identical field map. Edits
- *  mutate the parsed copy in place; the ID-pair mirror regions further in
- *  the bulk data only change when slots are added/removed, which this file
- *  deliberately does not do.
+ *  mutate the parsed copy in place. Yo-kai slots are claimed by setting
+ *  ID2 and freed by zeroing the whole slot; the ID-pair mirror regions
+ *  further in the bulk data are left alone either way.
  */
 
 import type { ParsedSave } from "./save-format";
@@ -175,4 +175,13 @@ export function writeSlot(
     const value = patch[key] as number | undefined;
     if (value !== undefined) dv.setUint16(off + OFF_HP_PLUS + delta, value & 0xffff, true);
   }
+}
+
+/** Free one yo-kai slot: zero all 469 bytes so it reads exactly like a slot
+ *  the game never filled (ID2 == 0), and a later add starts from clean
+ *  fields instead of inheriting the removed yo-kai's stats. */
+export function clearYoKaiSlot(parsed: ParsedSave, index: number): void {
+  if (index < 0 || index >= YOKAI_SLOTS) throw new Error(`Yo-kai slot ${index} out of range.`);
+  const off = slotOffset(parsed, YOKAI_BASE, index);
+  parsed.data.fill(0, off, off + SLOT_STRIDE);
 }

@@ -7,6 +7,9 @@ import {
   readParty,
   readYoKaiSlots,
   writeSlot,
+  clearYoKaiSlot,
+  SLOT_STRIDE,
+  YOKAI_BASE,
   type PartySlot,
 } from "./party";
 
@@ -133,5 +136,24 @@ describe("yo-kai slots", () => {
     const after = parsed.data;
     // Party table: 166627..169449 must be untouched by a yo-kai edit at 169449.
     expect(after.subarray(166627, 169449)).toEqual(before.subarray(166627, 169449));
+  });
+
+  it("removes a yo-kai by zeroing exactly its slot", () => {
+    const parsed = skeleton();
+    writeSlot(parsed, "yokai", 3, { speciesId: 0x42, level: 55, name: "Gone", xp: 7 });
+    writeSlot(parsed, "yokai", 4, { speciesId: 0x43, level: 12 });
+    const before = parsed.data.slice();
+    clearYoKaiSlot(parsed, 3);
+    const slots = readYoKaiSlots(parsed);
+    expect(slots[3]).toMatchObject({ exists: false, speciesId: 0, level: 0, xp: 0, name: "" });
+    expect(slots[4]).toMatchObject({ exists: true, speciesId: 0x43, level: 12 });
+    // Only slot 3's 469 bytes changed (compare bytes outside it directly;
+    // toEqual on ~1 MB arrays is slow).
+    const start = parsed.sections[2].offset + (YOKAI_BASE - 35395) + 3 * SLOT_STRIDE;
+    for (let i = 0; i < before.length; i++) {
+      if (i >= start && i < start + SLOT_STRIDE) continue;
+      if (parsed.data[i] !== before[i]) throw new Error(`byte ${i} changed`);
+    }
+    expect(() => clearYoKaiSlot(parsed, YOKAI_SLOTS)).toThrow(/out of range/);
   });
 });

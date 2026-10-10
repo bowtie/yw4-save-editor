@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { Button, Card, CardContent, Input, ScrollShadow, toast } from "@heroui/react";
-import { readYoKaiSlots, writeSlot, type PartySlot } from "./lib/party";
+import { clearYoKaiSlot, readYoKaiSlots, writeSlot, type PartySlot } from "./lib/party";
 import { yokaiNameFor } from "./lib/yokai";
 import { nameForParam } from "./lib/characters";
 import { PLAYABLE_YOKAI, type PlayableYokai } from "./lib/yokai-playable";
@@ -13,8 +13,8 @@ import { yokaiExpRate } from "./lib/yokai-curve";
 import { EXP_RATES, LEVEL_CAP, expToNext } from "./lib/exp-curve";
 import { YOKAI_MOVES } from "./lib/yokai-moves";
 import type { ParsedSave } from "./lib/save-format";
-import { GameIcon, LabeledHint, NameField, NumberField } from "./ui";
-import { PlusIcon } from "./icons";
+import { ExpStepper, GameIcon, LabeledHint, NameField, RollStepper } from "./ui";
+import { PlusIcon, TrashIcon } from "./icons";
 
 export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
   const [search, setSearch] = useState("");
@@ -84,6 +84,16 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
     setSelected(index);
     setAdding(false);
     rerender();
+  };
+
+  const removeYoKai = (s: PartySlot) => {
+    const name = speciesFor(s);
+    clearYoKaiSlot(parsed, s.index);
+    setSelected(null);
+    rerender();
+    toast.success(`Removed ${name} from slot ${s.index + 1}.`, {
+      description: "Reset edits brings it back if this was a mistake.",
+    });
   };
 
   return (
@@ -206,10 +216,19 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                     name={iconFor(slot)}
                     className="size-14 shrink-0 rounded-xl bg-surface-secondary object-contain p-0.5"
                   />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{species}</p>
                     <p className="text-xs text-muted">Slot {slot.index + 1}</p>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 text-danger"
+                    aria-label={`Remove ${species}`}
+                    onPress={() => removeYoKai(slot)}
+                  >
+                    <TrashIcon size={14} /> Remove
+                  </Button>
                 </div>
 
                 <LabeledHint label="Given name">
@@ -221,19 +240,30 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   />
                 </LabeledHint>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <NumberField
-                    label="Level"
+                {/* A div, not a <label>: clicking a label's text would press the
+                    stepper's first button (−) as its labelled control. */}
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <span className="w-9 whitespace-nowrap">Level</span>
+                  <RollStepper
+                    className="min-w-0 flex-1"
                     value={slot.level}
+                    step={1}
+                    min={1}
                     max={LEVEL_CAP}
+                    ariaLabel="Level"
                     onCommit={(v) => patch({ level: v })}
                   />
-                  <NumberField
-                    label="EXP"
-                    value={slot.level >= LEVEL_CAP ? 0 : slot.xp}
-                    max={expToNext(Math.min(slot.level, LEVEL_CAP - 1), expRate)}
-                    onCommit={(v) => patch({ xp: v })}
-                  />
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <span className="w-9 whitespace-nowrap">EXP</span>
+                  <div className="min-w-0 flex-1">
+                    <ExpStepper
+                      xp={slot.xp}
+                      toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1), expRate)}
+                      maxed={slot.level >= LEVEL_CAP}
+                      onCommit={(v) => patch({ xp: v })}
+                    />
+                  </div>
                 </div>
 
                 <p className="text-xs text-muted">
