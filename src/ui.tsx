@@ -380,7 +380,6 @@ export function RollStepper({
   className,
   ariaLabel,
   bare = false,
-  compact = false,
   disabled = false,
 }: {
   value: number;
@@ -392,8 +391,6 @@ export function RollStepper({
   ariaLabel: string;
   /** Transparent field chrome, for mounting the stepper over a progress bar. */
   bare?: boolean;
-  /** Tighter −/+ buttons, for narrow grids where the number needs the room. */
-  compact?: boolean;
   /** Locked: no buttons, no click-to-edit, muted display. */
   disabled?: boolean;
 }) {
@@ -442,8 +439,7 @@ export function RollStepper({
 
   useEffect(() => endHold, []);
 
-  const btn = `flex ${compact ? "size-4" : "size-5"} items-center justify-center rounded-small p-0 text-muted`;
-  const pad = compact ? "px-0.5" : "px-1";
+  const btn = "flex size-5 items-center justify-center rounded-small p-0 text-muted";
   const holdButton = (dir: 1 | -1, glyph: React.ReactNode) => (
     <button
       type="button"
@@ -472,7 +468,7 @@ export function RollStepper({
       style={bare ? { background: "transparent", border: "none", boxShadow: "none" } : undefined}
     >
       {!disabled && (
-        <InputGroupPrefix className={`flex items-center ${pad}`}>
+        <InputGroupPrefix className="flex items-center px-1">
           {holdButton(-1, <MinusIcon size={12} />)}
         </InputGroupPrefix>
       )}
@@ -498,7 +494,7 @@ export function RollStepper({
         <button
           type="button"
           aria-label={`Edit ${ariaLabel}`}
-          className={`w-0 min-w-0 flex-1 text-center font-mono ${compact ? "text-xs" : "text-sm"}`}
+          className="w-0 min-w-0 flex-1 text-center font-mono text-sm"
           disabled={disabled}
           onClick={() => {
             if (!disabled) setEditing(true);
@@ -521,7 +517,7 @@ export function RollStepper({
         </button>
       )}
       {!disabled && (
-        <InputGroupSuffix className={`flex items-center ${pad}`}>
+        <InputGroupSuffix className="flex items-center px-1">
           {holdButton(1, <PlusIcon size={12} />)}
         </InputGroupSuffix>
       )}
