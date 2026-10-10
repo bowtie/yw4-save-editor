@@ -551,7 +551,7 @@ export function ExpStepper({
         />
       )}
       {maxed && (
-        <span className="absolute right-2 z-20 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
+        <span className="absolute right-2 z-20 rounded-full bg-surface-secondary px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-muted">
           Max
         </span>
       )}

@@ -14,11 +14,13 @@ import {
   setQuantity,
   setYoKaiSoul,
   type Slot,
+  type YokaiSoulSlot,
 } from "./lib/editor";
 import { itemByCrc } from "./lib/item-data";
 import { ITEM_GROUPS } from "./lib/item-order";
 import { SOULS_CATALOG } from "./lib/souls-catalog";
-import { KONKATSU_LIST } from "./lib/konkatsu-list";
+import { KONKATSU_LIST, type KonkatsuEntry } from "./lib/konkatsu-list";
+import { tribeInfo } from "./lib/tribes";
 import type { ParsedSave } from "./lib/save-format";
 import { GameIcon, RarityStars, RollStepper } from "./ui";
 import { SOUL_ART } from "./lib/soul-art";
@@ -39,25 +41,111 @@ const TIERS = [
   { which: "gold", dot: "bg-warning" },
 ] as const;
 
-/** chara_base battle-row tribe enum (see lib/yokai-base.ts). */
-const TRIBE_NAMES = [
-  "",
-  "Goriki",
-  "Onnen",
-  "Mononoke",
-  "Tsukumono",
-  "Uwanosora",
-  "Omamori",
-  "Mikakunin",
-  "Mikado",
-  "Izana",
-  "Oni",
-  "Wicked",
-  "Shinma",
-] as const;
-
 /** chara_base battle-row rank enum: 1 E .. 6 S. */
 const RANK_LETTERS = ["", "E", "D", "C", "B", "A", "S"] as const;
+
+const TIER_LABELS = { white: "White", red: "Red", gold: "Gold" } as const;
+
+/** One yo-kai's soul counters: art, tribe and rank, the summon recipe, then
+ *  the three tier steppers. Species without a ledger row sit faded with a
+ *  Start button that creates the row. */
+function LedgerTile({
+  match,
+  soul,
+  onSet,
+  onStart,
+}: {
+  match: KonkatsuEntry;
+  soul: YokaiSoulSlot | undefined;
+  onSet: (soul: YokaiSoulSlot, which: "white" | "red" | "gold", v: number) => void;
+  onStart: () => void;
+}) {
+  const tribe = tribeInfo(yokaiTribe(match.paramId));
+  const rank = yokaiRank(match.paramId);
+  const recipe = `Summon: ${match.souls.map((s) => `${s.count} ${s.tier}`).join(", ")}, ${match.money.toLocaleString("en-US")} money${match.item ? `, ${match.item}` : ""}`;
+  return (
+    <div
+      className={`flex flex-col gap-2 rounded-xl border border-border bg-surface-secondary/50 p-2.5 ${
+        soul ? "" : "border-dashed"
+      }`}
+    >
+      <div className="flex items-center gap-2.5">
+        <GameIcon
+          folder="Yokai"
+          name={match.model}
+          className={`size-10 shrink-0 rounded-lg bg-surface-secondary object-contain p-0.5 ${
+            soul ? "" : "opacity-50"
+          }`}
+        />
+        <div className="min-w-0 flex-1">
+          <p
+            className={`flex items-center gap-1.5 text-sm font-medium ${soul ? "" : "text-muted"}`}
+          >
+            <span className="truncate">{match.name}</span>
+            {tribe && (
+              <GameIcon
+                folder="Tribes"
+                name={tribe.emblem}
+                alt={`${tribe.name} tribe`}
+                className="size-4 shrink-0 object-contain"
+              />
+            )}
+            {rank !== undefined && (
+              <GameIcon
+                folder="Tribes"
+                name={`rank_${RANK_LETTERS[rank]}`}
+                alt={`Rank ${RANK_LETTERS[rank]}`}
+                className="size-4 shrink-0 object-contain"
+              />
+            )}
+          </p>
+          <p className="flex items-center gap-2 text-xs text-muted" title={recipe}>
+            {match.souls.map(({ tier, count }) => (
+              <span key={tier} className="flex items-center gap-1 tabular-nums">
+                <span
+                  className={`size-2 rounded-full ${TIERS.find((t) => t.which === tier)!.dot}`}
+                />
+                {count}
+              </span>
+            ))}
+            <span className="tabular-nums">{match.money.toLocaleString("en-US")}</span>
+            {match.item && <span className="truncate">+ {match.item}</span>}
+          </p>
+        </div>
+        {!soul && (
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={`Start ${match.name} souls`}
+            onPress={onStart}
+          >
+            <PlusIcon size={14} /> Start
+          </Button>
+        )}
+      </div>
+      {soul && (
+        <div className="grid grid-cols-3 gap-1.5">
+          {TIERS.map(({ which, dot }) => (
+            <div key={which} className="flex min-w-0 flex-col gap-1">
+              <span className="flex items-center gap-1 text-xs text-muted">
+                <span className={`size-2 rounded-full ${dot}`} />
+                {TIER_LABELS[which]}
+              </span>
+              <RollStepper
+                className="w-full"
+                value={soul[which]}
+                step={1}
+                max={0xffff}
+                ariaLabel={`${match.name} ${which} souls`}
+                onCommit={(v) => onSet(soul, which, v)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () => void }) {
   const [search, setSearch] = useState("");
@@ -215,119 +303,29 @@ export function SoulsPanel({ parsed }: { parsed: ParsedSave }) {
             </div>
           </Tabs.Panel>
           <Tabs.Panel key="ledger" id="ledger">
-            <ScrollShadow className="mt-2.5 max-h-96 rounded-xl border border-border bg-surface-secondary/50 p-2">
-              <div className="flex flex-col gap-0.5">
-                {KONKATSU_LIST.map((match) => {
-                  const soul = soulsByParam.get(match.paramId);
-                  const collected = soul !== undefined;
-                  return (
-                    <div
+            <ScrollShadow className="mt-2.5 max-h-[32rem]">
+              <div className="@container">
+                <div className="grid grid-cols-1 gap-2 @md:grid-cols-2">
+                  {KONKATSU_LIST.map((match) => (
+                    <LedgerTile
                       key={match.model}
-                      className={`flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-surface-hover ${
-                        collected ? "" : "opacity-50"
-                      }`}
-                    >
-                      <GameIcon
-                        folder="Yokai"
-                        name={match.model}
-                        className="size-8 shrink-0 rounded-lg bg-surface-secondary object-contain p-0.5"
-                      />
-                      {(() => {
-                        const tribe = yokaiTribe(match.paramId);
-                        const rank = yokaiRank(match.paramId);
-                        return (
-                          <>
-                            {tribe !== undefined && (
-                              <span title={`${TRIBE_NAMES[tribe]} tribe`}>
-                                <GameIcon
-                                  folder="Tribes"
-                                  name={`race_${TRIBE_NAMES[tribe]}`}
-                                  className="block size-5 shrink-0 rounded object-contain"
-                                />
-                              </span>
-                            )}
-                            {rank !== undefined && (
-                              <span title={`Rank ${RANK_LETTERS[rank]}`}>
-                                <GameIcon
-                                  folder="Tribes"
-                                  name={`rank_${RANK_LETTERS[rank]}`}
-                                  className="block size-5 shrink-0 object-contain"
-                                />
-                              </span>
-                            )}
-                          </>
-                        );
-                      })()}
-                      <div className="min-w-0 flex-1">
-                        <p className={`truncate text-sm ${collected ? "" : "text-muted"}`}>
-                          {match.name}
-                        </p>
-                        <p
-                          title={`Summon: ${match.souls
-                            .map((s) => s.count + " " + s.tier)
-                            .join(" + ")} + ${match.money} money${
-                            match.item ? ` + ${match.item}` : ""
-                          }`}
-                          className="flex items-center gap-1.5 text-[10px] text-muted opacity-80"
-                        >
-                          {match.souls.map(({ tier, count }) => {
-                            const dot = TIERS.find((t) => t.which === tier)!;
-                            return (
-                              <span key={tier} className="flex items-center gap-0.5 tabular-nums">
-                                <span className={`size-1.5 rounded-full ${dot.dot}`} />
-                                {count}
-                              </span>
-                            );
-                          })}
-                          <span className="tabular-nums">
-                            {match.money.toLocaleString("en-US")}
-                          </span>
-                          {match.item && <span className="truncate">+ {match.item}</span>}
-                        </p>
-                      </div>
-                      {collected ? (
-                        TIERS.map(({ which, dot }) => (
-                          <div
-                            key={which}
-                            title={which}
-                            className="flex items-center gap-1.5 text-xs text-muted"
-                          >
-                            <span className={`size-2 rounded-full ${dot}`} />
-                            <RollStepper
-                              className="w-24"
-                              value={soul[which]}
-                              step={1}
-                              max={0xffff}
-                              ariaLabel={`${match.name} ${which} souls`}
-                              onCommit={(v) => {
-                                setYoKaiSoul(parsed, soul.index, which, v);
-                                rerender();
-                              }}
-                            />
-                          </div>
-                        ))
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          isIconOnly
-                          aria-label={`Start ${match.name} souls`}
-                          className="text-muted"
-                          onPress={() => {
-                            try {
-                              addYoKaiSoulRow(parsed, match.paramId, { white: 1, red: 0, gold: 0 });
-                              rerender();
-                            } catch (err) {
-                              toast.warning(String((err as Error).message ?? err));
-                            }
-                          }}
-                        >
-                          <PlusIcon size={15} />
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
+                      match={match}
+                      soul={soulsByParam.get(match.paramId)}
+                      onSet={(soul, which, v) => {
+                        setYoKaiSoul(parsed, soul.index, which, v);
+                        rerender();
+                      }}
+                      onStart={() => {
+                        try {
+                          addYoKaiSoulRow(parsed, match.paramId, { white: 1, red: 0, gold: 0 });
+                          rerender();
+                        } catch (err) {
+                          toast.warning(String((err as Error).message ?? err));
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </ScrollShadow>
           </Tabs.Panel>

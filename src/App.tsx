@@ -12,7 +12,6 @@ import { InventoryPanel } from "./InventoryPanel";
 import { SoulsPanel } from "./SoulsPanel";
 import { PartyPanel } from "./PartyPanel";
 import { YokaiPanel } from "./YokaiPanel";
-import { SystemPanel } from "./SystemPanel";
 import { DownloadIcon } from "./icons";
 import { useOverlayState } from "./ui";
 import { WATCH_UP_ICON } from "./dropzone";
@@ -20,17 +19,11 @@ import { PlatformBadge } from "./platforms";
 import { classifyAll, sniffDataBinSlots, type DroppedFile } from "./lib/file-selection";
 import { detectSide, parseSave, type ParsedSave } from "./lib/save-format";
 import { assertEditableLayout } from "./lib/validate";
-import { describeChanges, describeSystemChanges, type ChangeGroup } from "./lib/change-report";
-import { assertSystemLayout, readSystemSettings } from "./lib/system-settings";
+import { describeChanges, type ChangeGroup } from "./lib/change-report";
 
 interface EditableSave {
   platform: "switch" | "ps4";
   slot: string;
-  fileName: string;
-  file: File;
-}
-
-interface SystemFile {
   fileName: string;
   file: File;
 }
@@ -43,7 +36,7 @@ interface PendingDiscard {
   run: () => void;
 }
 
-type TabId = "player" | "party" | "yokai" | "inventory" | "souls" | "system";
+type TabId = "player" | "party" | "yokai" | "inventory" | "souls";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "player", label: "Player" },
@@ -61,22 +54,13 @@ export default function Editor() {
   const [tab, setTab] = useState<TabId>("player");
   const [version, setVersion] = useState(0); // bumped after every load
   const [changes, setChanges] = useState<ChangeGroup[] | null>(null);
-  const [modalMode, setModalMode] = useState<"save" | "system">("save");
   const confirmState = useOverlayState();
   /** "Discard unsaved edits?" prompt; holds the action it guards. */
   const discardState = useOverlayState();
   const [pendingDiscard, setPendingDiscard] = useState<PendingDiscard | null>(null);
   /** Bytes exactly as loaded — the diff baseline for the download preview. */
   const originalRef = useRef<Uint8Array | null>(null);
-  /** The SYSTEM save (graphics/options); optional companion to the slots. */
-  const [systemFile, setSystemFile] = useState<SystemFile | null>(null);
-  const [systemParsed, setSystemParsed] = useState<ParsedSave | null>(null);
-  const systemOriginalRef = useRef<Uint8Array | null>(null);
-  const [systemChanges, setSystemChanges] = useState<ChangeGroup[] | null>(null);
-  /** Bumped after every SYSTEM load, so its panel remounts on the new copy. */
-  const [systemVersion, setSystemVersion] = useState(0);
-
-  /** The two real saves; HEADERSAVE/SYSTEM are metadata, not editable. */
+  /** The two real saves; HEADERSAVE and SYSTEM (options) are not edited. */
   const SLOT_LABELS: Record<string, string> = {
     USERDATA00: "User Save",
     AUTOSAVE: "Auto Save",
@@ -144,36 +128,7 @@ export default function Editor() {
     setNotes(notes);
     setSelectedSave(0);
     void loadSave(found[0]);
-
-    // The SYSTEM save (graphics/options) is optional company for the slots.
-    const systemEntry = ps4Slots.SYSTEM ?? switchSlots.SYSTEM;
-    if (systemEntry) void loadSystem({ fileName: systemEntry.file.name, file: systemEntry.file });
-    else {
-      setSystemFile(null);
-      setSystemParsed(null);
-      systemOriginalRef.current = null;
-    }
   }, []);
-
-  const loadSystem = async (file: SystemFile) => {
-    try {
-      const data = new Uint8Array(await file.file.arrayBuffer());
-      const next = parseSave(data);
-      assertSystemLayout(next);
-      readSystemSettings(next); // decode once to fail early on odd layouts
-      systemOriginalRef.current = data.slice();
-      setSystemFile(file);
-      setSystemParsed(next);
-      setSystemVersion((v) => v + 1);
-    } catch (err) {
-      setSystemFile(null);
-      setSystemParsed(null);
-      systemOriginalRef.current = null;
-      toast.warning("SYSTEM save found but not editable here", {
-        description: (err as Error).message,
-      });
-    }
-  };
 
   const loadSave = async (save: EditableSave | undefined, { keepTab = false } = {}) => {
     if (!save) return;
@@ -198,10 +153,9 @@ export default function Editor() {
     await loadSave(saves[index]);
   };
 
-  /** Re-read both dropped files, dropping every edit (SYSTEM included). */
+  /** Re-read the dropped file, dropping every edit. */
   const resetEdits = () => {
     void loadSave(saves[selectedSave], { keepTab: true });
-    if (systemFile) void loadSystem(systemFile);
   };
 
   const reset = () => {
@@ -211,10 +165,6 @@ export default function Editor() {
     setParsed(null);
     originalRef.current = null;
     setChanges(null);
-    setSystemFile(null);
-    setSystemParsed(null);
-    systemOriginalRef.current = null;
-    setSystemChanges(null);
   };
 
   const hasEdits = (): boolean => {
@@ -223,10 +173,7 @@ export default function Editor() {
       for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return true;
       return false;
     };
-    return (
-      differs(originalRef.current, parsed?.data ?? null) ||
-      differs(systemOriginalRef.current, systemParsed?.data ?? null)
-    );
+    return differs(originalRef.current, parsed?.data ?? null);
   };
 
   /** Run an action that throws away the in-memory edits, asking first when
@@ -253,29 +200,15 @@ export default function Editor() {
   });
 
   /** Open the diff preview; the modal's confirm button performs the download. */
-  const requestDownload = (mode: "save" | "system") => {
-    if (mode === "system") {
-      if (!systemParsed || !systemOriginalRef.current) return;
-      setSystemChanges(
-        describeSystemChanges(
-          systemParsed,
-          systemOriginalRef.current,
-          readSystemSettings(systemParsed).entries,
-        ),
-      );
-      setModalMode("system");
-      confirmState.open();
-      return;
-    }
+  const requestDownload = () => {
     if (!parsed || !originalRef.current) return;
     setChanges(describeChanges(parsed, originalRef.current));
-    setModalMode("save");
     confirmState.open();
   };
 
   const download = () => {
-    const saveFile = modalMode === "system" ? systemFile : saves[selectedSave];
-    const data = modalMode === "system" ? systemParsed?.data : parsed?.data;
+    const saveFile = saves[selectedSave];
+    const data = parsed?.data;
     if (!saveFile || !data) return;
     const blob = new Blob([data.slice().buffer as ArrayBuffer], {
       type: "application/octet-stream",
@@ -362,10 +295,7 @@ export default function Editor() {
               >
                 <Tabs.ListContainer>
                   <Tabs.List>
-                    {[
-                      ...TABS,
-                      ...(systemParsed ? [{ id: "system" as TabId, label: "System" }] : []),
-                    ].map((t) => (
+                    {TABS.map((t) => (
                       <Tabs.Tab key={t.id} id={t.id}>
                         <Tabs.Indicator />
                         {t.label}
@@ -373,16 +303,13 @@ export default function Editor() {
                     ))}
                   </Tabs.List>
                 </Tabs.ListContainer>
-                {[...TABS, ...(systemParsed ? [{ id: "system" as TabId }] : [])].map((t) => (
+                {TABS.map((t) => (
                   <Tabs.Panel key={t.id} id={t.id}>
                     {t.id === "player" && <PlayerPanel key={version} parsed={parsed} />}
                     {t.id === "party" && <PartyPanel key={version} parsed={parsed} />}
                     {t.id === "yokai" && <YokaiPanel key={version} parsed={parsed} />}
                     {t.id === "inventory" && <InventoryPanel key={version} parsed={parsed} />}
                     {t.id === "souls" && <SoulsPanel key={version} parsed={parsed} />}
-                    {t.id === "system" && systemParsed && (
-                      <SystemPanel key={systemVersion} parsed={systemParsed} />
-                    )}
                   </Tabs.Panel>
                 ))}
               </Tabs>
@@ -409,7 +336,7 @@ export default function Editor() {
                   onPress={() =>
                     guardDiscard({
                       title: "Reset all edits?",
-                      body: "Every change on every tab, System included, goes back to the file you dropped in.",
+                      body: "Every change on every tab goes back to the file you dropped in.",
                       confirm: "Reset edits",
                       run: resetEdits,
                     })
@@ -417,17 +344,9 @@ export default function Editor() {
                 >
                   Reset edits
                 </Button>
-                {/* One download action: on the System tab it writes the SYSTEM
-                    save, everywhere else the selected slot. */}
-                {tab === "system" && systemParsed ? (
-                  <Button size="sm" variant="primary" onPress={() => requestDownload("system")}>
-                    <DownloadIcon size={15} /> Download SYSTEM save
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="primary" onPress={() => requestDownload("save")}>
-                    <DownloadIcon size={15} /> Download edited save
-                  </Button>
-                )}
+                <Button size="sm" variant="primary" onPress={requestDownload}>
+                  <DownloadIcon size={15} /> Download edited save
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -454,11 +373,9 @@ export default function Editor() {
                 </Modal.Header>
                 <Modal.Body className="min-h-0 overflow-y-auto">
                   <DownloadPreview
-                    parsed={modalMode === "system" ? systemParsed : parsed}
-                    original={
-                      modalMode === "system" ? systemOriginalRef.current : originalRef.current
-                    }
-                    changes={modalMode === "system" ? systemChanges : changes}
+                    parsed={parsed}
+                    original={originalRef.current}
+                    changes={changes}
                   />
                 </Modal.Body>
                 <Modal.Footer>
