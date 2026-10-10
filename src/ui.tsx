@@ -512,11 +512,61 @@ export function RollStepper({
   );
 }
 
-/** Clamp an integer typed into a field; NaN/empty falls back to min. */
-export function clampInt(text: string, min: number, max: number): number {
-  const n = Math.floor(Number(text));
-  if (Number.isNaN(n)) return min;
-  return Math.max(min, Math.min(max, n));
+/** EXP stepper drawn over a progress bar filled in the given accent; shared
+ *  by Characters and Yo-kai so both edit level progress the same way. At the
+ *  level cap the bar locks and shows MAX (the game stores EXP as 0 there). */
+export function ExpStepper({
+  xp,
+  toNext,
+  maxed,
+  accent = "#3e63dd",
+  onCommit,
+}: {
+  xp: number;
+  /** EXP needed to clear the current level (the stepper's max). */
+  toNext: number;
+  /** At the level cap: bar hidden, stepper locked at 0. */
+  maxed: boolean;
+  accent?: string;
+  onCommit: (v: number) => void;
+}) {
+  return (
+    <div
+      className="relative flex h-[36px] min-w-0 items-center overflow-hidden"
+      style={{
+        background: "#1c1c20",
+        border: "1px solid rgb(255 255 255 / 0.14)",
+        borderRadius: 12,
+      }}
+    >
+      {!maxed && (
+        <div
+          className="absolute inset-y-0 left-0"
+          style={{
+            width: `${Math.min(100, (xp / toNext) * 100)}%`,
+            background: `linear-gradient(180deg, ${accent}59, ${accent}14)`,
+            borderRadius: 12,
+            transition: "width 450ms cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
+        />
+      )}
+      {maxed && (
+        <span className="absolute right-2 z-20 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
+          Max
+        </span>
+      )}
+      <RollStepper
+        bare
+        disabled={maxed}
+        className="relative z-10 min-w-0 flex-1"
+        value={maxed ? 0 : xp}
+        step={1}
+        max={toNext}
+        ariaLabel="EXP"
+        onCommit={onCommit}
+      />
+    </div>
+  );
 }
 
 /** Minimal overlay-state object satisfying HeroUI's Modal `state` prop. */
@@ -535,92 +585,6 @@ export function useOverlayState(initial = false) {
 }
 
 const ERROR_RING = "border-danger focus:border-danger";
-
-/**
- * Label-free validated integer input: in-range input commits immediately,
- * out-of-range input keeps a red border + message and never reaches the
- * serializer. The displayed value snaps back to the committed one on blur.
- */
-export function ValidatedNumber({
-  ariaLabel,
-  value,
-  min = 0,
-  max,
-  onCommit,
-  className = "w-full font-mono",
-}: {
-  ariaLabel: string;
-  value: number;
-  min?: number;
-  max: number;
-  onCommit: (v: number) => void;
-  className?: string;
-}) {
-  const [text, setText] = useState<string | null>(null);
-  const shown = text ?? String(value);
-  const parsed = Number(shown);
-  const isInt = Number.isInteger(parsed);
-  const invalid = text !== null && (!isInt || parsed < min || parsed > max);
-  return (
-    <div className="min-w-0">
-      <Input
-        type="number"
-        aria-label={ariaLabel}
-        aria-invalid={invalid || undefined}
-        className={`${className} ${invalid ? ERROR_RING : ""}`}
-        value={shown}
-        title={`Range ${min.toLocaleString()}-${max.toLocaleString()}`}
-        onChange={(e) => {
-          setText(e.target.value);
-          const n = Math.floor(Number(e.target.value));
-          if (e.target.value !== "" && Number.isInteger(n) && n >= min && n <= max) {
-            onCommit(n);
-          }
-        }}
-        onBlur={() => setText(null)}
-      />
-      {invalid && (
-        <p className="mt-0.5 text-xs text-danger">
-          {!isInt
-            ? "Not a whole number"
-            : `Must be ${min.toLocaleString()}-${max.toLocaleString()}`}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/**
- * Integer field with inline validation: in-range input commits immediately,
- * out-of-range input keeps a red border + message and never reaches the
- * serializer. The displayed value snaps back to the committed one on blur.
- */
-export function NumberField({
-  label,
-  value,
-  min = 0,
-  max,
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  min?: number;
-  max: number;
-  onCommit: (v: number) => void;
-}) {
-  return (
-    <LabeledHint label={label}>
-      <ValidatedNumber
-        ariaLabel={label}
-        value={value}
-        min={min}
-        max={max}
-        onCommit={onCommit}
-        className="w-full font-mono"
-      />
-    </LabeledHint>
-  );
-}
 
 /**
  * Text field for in-game names: commits every input that fits the slot's

@@ -62,12 +62,14 @@ function Tile({
   );
 }
 
+/** A div, not a <label>: clicking a label's text would press a stepper's
+ *  first button (−) as its labelled control. */
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-2 text-xs text-muted">
+    <div className="flex items-center gap-2 text-xs text-muted">
       <span className="shrink-0 whitespace-nowrap">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }
 

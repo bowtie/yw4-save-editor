@@ -6,17 +6,7 @@
  *  the save derives them from story-event flags, so they can neither be read
  *  as owned nor given via the acquisition log. See tools/lua/save_flag_notes.md. */
 import { memo, useCallback, useState } from "react";
-import {
-  Button,
-  Checkbox,
-  Input,
-  InputGroupInput,
-  InputGroupPrefix,
-  InputGroupRoot,
-  InputGroupSuffix,
-  ScrollShadow,
-  toast,
-} from "@heroui/react";
+import { Button, Checkbox, Input, ScrollShadow, toast } from "@heroui/react";
 import { SlotText } from "slot-text/react";
 import { play } from "cuelume";
 import {
@@ -31,8 +21,8 @@ import { itemByCrc, type ItemCategory, type ItemInfo } from "./lib/item-data";
 import { ITEM_GROUPS } from "./lib/item-order";
 import { ITEM_EXCLUSIVITY } from "./lib/item-exclusivity";
 import type { ParsedSave } from "./lib/save-format";
-import { ItemIcon, RarityStars } from "./ui";
-import { MinusIcon, PlusIcon, SearchIcon } from "./icons";
+import { ItemIcon, RarityStars, RollStepper } from "./ui";
+import { SearchIcon } from "./icons";
 
 const ROW_CAP = 400;
 /** The game caps bag stacks at 99 (item_config ordinal 7). */
@@ -58,83 +48,6 @@ function CheckTick({
         </Checkbox.Control>
       </Checkbox.Content>
     </Checkbox.Root>
-  );
-}
-
-/** HeroUI InputGroup stepper: [-][quantity][+], commits every in-range edit. */
-export function QuantityStepper({
-  name,
-  value,
-  onCommit,
-}: {
-  name: string;
-  value: number;
-  onCommit: (v: number) => void;
-}) {
-  const clamp = (v: number) => Math.max(1, Math.min(STACK_MAX, v));
-  const [text, setText] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [direction, setDirection] = useState<"up" | "down">("up");
-  const step = (delta: 1 | -1) => {
-    setDirection(delta > 0 ? "up" : "down");
-    play("tick");
-    onCommit(clamp(value + delta));
-  };
-  const stepProps = (label: string) => ({
-    variant: "ghost" as const,
-    size: "sm" as const,
-    isIconOnly: true,
-    "aria-label": label,
-    className: "size-5 min-w-5 rounded-small p-0 text-muted",
-  });
-  return (
-    <InputGroupRoot className="w-24">
-      <InputGroupPrefix className="flex items-center px-1">
-        <Button
-          {...stepProps(`Remove one ${name}`)}
-          isDisabled={value <= 1}
-          onPress={() => step(-1)}
-        >
-          <MinusIcon size={12} />
-        </Button>
-      </InputGroupPrefix>
-      {editing ? (
-        <InputGroupInput
-          autoFocus
-          type="number"
-          aria-label={`${name} quantity`}
-          className="w-0 min-w-0 flex-1 text-center font-mono [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          value={text ?? String(value)}
-          onChange={(e) => {
-            setText(e.target.value);
-            const n = Math.floor(Number(e.target.value));
-            if (e.target.value !== "" && Number.isInteger(n)) onCommit(clamp(n));
-          }}
-          onBlur={() => {
-            setText(null);
-            setEditing(false);
-          }}
-        />
-      ) : (
-        <button
-          type="button"
-          aria-label={`Edit ${name} quantity`}
-          className="w-0 min-w-0 flex-1 cursor-text text-center font-mono text-sm"
-          onClick={() => setEditing(true)}
-        >
-          <SlotText text={String(value)} options={{ direction, duration: 180, stagger: 24 }} />
-        </button>
-      )}
-      <InputGroupSuffix className="flex items-center px-1">
-        <Button
-          {...stepProps(`Add one ${name}`)}
-          isDisabled={value >= STACK_MAX}
-          onPress={() => step(1)}
-        >
-          <PlusIcon size={12} />
-        </Button>
-      </InputGroupSuffix>
-    </InputGroupRoot>
   );
 }
 
@@ -187,9 +100,13 @@ const InventoryRow = memo(function InventoryRow({
         )}
       </span>
       {quantity !== null ? (
-        <QuantityStepper
-          name={info.name}
+        <RollStepper
+          className="w-24"
           value={quantity}
+          step={1}
+          min={1}
+          max={STACK_MAX}
+          ariaLabel={`${info.name} quantity`}
           onCommit={(v) => onQuantity(slotIndex, v)}
         />
       ) : (
@@ -351,48 +268,5 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
         </div>
       </ScrollShadow>
     </div>
-  );
-}
-
-/** Small ghost button used by the souls bag list (give / remove). */
-export function RowIconButton({
-  kind,
-  label,
-  onPress,
-}: {
-  kind: "give" | "remove";
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Button
-      size="sm"
-      variant="ghost"
-      isIconOnly
-      aria-label={label}
-      className="text-muted"
-      onPress={onPress}
-    >
-      {kind === "give" ? <PlusIcon size={15} /> : <TrashIconInline />}
-    </Button>
-  );
-}
-
-function TrashIconInline() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M4.6 7h14.8M9.6 7V5.4A1.4 1.4 0 0 1 11 4h2a1.4 1.4 0 0 1 1.4 1.4V7" />
-      <path d="M6.6 7l.7 11a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.7-11" />
-    </svg>
   );
 }

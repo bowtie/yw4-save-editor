@@ -3,7 +3,7 @@
  *  lengths); ranges marked unconfirmed come from storage bounds plus
  *  observed values, not from decompiled menu code. */
 import { useState } from "react";
-import { Button, Card, CardContent, ScrollShadow } from "@heroui/react";
+import { Card, CardContent, ScrollShadow } from "@heroui/react";
 import {
   readSystemSettings,
   writeSystemSetting,
@@ -12,8 +12,7 @@ import {
   type SystemSettings,
 } from "./lib/system-settings";
 import type { ParsedSave } from "./lib/save-format";
-import { ValidatedNumber } from "./ui";
-import { DownloadIcon } from "./icons";
+import { RollStepper } from "./ui";
 
 const GROUP_LABELS: Record<SystemSettingDef["group"], string> = {
   graphics: "Graphics",
@@ -72,10 +71,11 @@ function SettingRow({
           ))}
         </select>
       ) : (
-        <ValidatedNumber
+        <RollStepper
+          className="w-28 shrink-0"
           ariaLabel={def.label}
-          className={`shrink-0 text-sm ${def.labels ? "w-20" : "w-24"} font-mono`}
           value={entry.value}
+          step={1}
           min={def.min}
           max={cap}
           onCommit={(v) => {
@@ -88,13 +88,7 @@ function SettingRow({
   );
 }
 
-export function SystemPanel({
-  parsed,
-  onRequestDownload,
-}: {
-  parsed: ParsedSave;
-  onRequestDownload: () => void;
-}) {
+export function SystemPanel({ parsed }: { parsed: ParsedSave }) {
   const [settings, setSettings] = useState(() => readSystemSettings(parsed));
   const rerender = () => setSettings(readSystemSettings(parsed));
 
@@ -137,12 +131,6 @@ export function SystemPanel({
         than the in-game menu allows. Engine-only extras (SSR sample counts, TAA/FXAA tuning, HDR
         tonemap) live in game data, not in the save.
       </p>
-
-      <div className="flex justify-end">
-        <Button size="sm" variant="primary" onPress={onRequestDownload}>
-          <DownloadIcon size={15} /> Download SYSTEM save
-        </Button>
-      </div>
     </div>
   );
 }

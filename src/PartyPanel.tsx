@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@heroui/react";
 import { readParty, writeSlot, type PartySlot } from "./lib/party";
 import type { ParsedSave } from "./lib/save-format";
-import { Portrait, PLAYER_ACCENTS, RollStepper } from "./ui";
+import { ExpStepper, Portrait, PLAYER_ACCENTS, RollStepper } from "./ui";
 import { nameForParam } from "./lib/characters";
 import { expToNext, LEVEL_CAP } from "./lib/exp-curve";
 import { LockIcon } from "./icons";
@@ -63,41 +63,13 @@ function CharacterTile({
           </div>
         </div>
         {acquired && (
-          <div
-            className="relative flex h-[36px] min-w-0 items-center overflow-hidden"
-            style={{
-              background: "#1c1c20",
-              border: "1px solid rgb(255 255 255 / 0.14)",
-              borderRadius: 12,
-            }}
-          >
-            {slot.level < LEVEL_CAP && (
-              <div
-                className="absolute inset-y-0 left-0"
-                style={{
-                  width: `${Math.min(100, (slot.xp / expToNext(slot.level)) * 100)}%`,
-                  background: `linear-gradient(180deg, ${accent}59, ${accent}14)`,
-                  borderRadius: 12,
-                  transition: "width 450ms cubic-bezier(0.22, 1, 0.36, 1)",
-                }}
-              />
-            )}
-            {slot.level >= LEVEL_CAP && (
-              <span className="absolute right-2 z-20 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
-                Max
-              </span>
-            )}
-            <RollStepper
-              bare
-              disabled={slot.level >= LEVEL_CAP}
-              className="relative z-10 min-w-0 flex-1"
-              value={slot.level >= LEVEL_CAP ? 0 : slot.xp}
-              step={1}
-              max={expToNext(Math.min(slot.level, LEVEL_CAP - 1))}
-              ariaLabel="EXP"
-              onCommit={(v) => onCommit(slot.index, { xp: v })}
-            />
-          </div>
+          <ExpStepper
+            xp={slot.xp}
+            toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1))}
+            maxed={slot.level >= LEVEL_CAP}
+            accent={accent}
+            onCommit={(v) => onCommit(slot.index, { xp: v })}
+          />
         )}
         {!acquired && (
           <p className="text-[11px] leading-tight text-muted opacity-80">

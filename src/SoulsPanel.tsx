@@ -20,7 +20,7 @@ import { ITEM_GROUPS } from "./lib/item-order";
 import { SOULS_CATALOG } from "./lib/souls-catalog";
 import { KONKATSU_LIST } from "./lib/konkatsu-list";
 import type { ParsedSave } from "./lib/save-format";
-import { GameIcon, RarityStars, ValidatedNumber } from "./ui";
+import { GameIcon, RarityStars, RollStepper } from "./ui";
 import { SOUL_ART } from "./lib/soul-art";
 import { yokaiRank, yokaiTribe } from "./lib/yokai-base";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
@@ -118,14 +118,15 @@ function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () =>
                 </span>
                 {slot ? (
                   <>
-                    <ValidatedNumber
-                      ariaLabel={`${item.name} quantity`}
-                      className="w-16 font-mono"
+                    <RollStepper
+                      className="w-24"
                       value={slot.quantity}
+                      step={1}
                       max={0xffff}
+                      ariaLabel={`${item.name} quantity`}
                       onCommit={(v) => {
-                        slot.quantity = v;
                         setQuantity(parsed, def, slot.index, v);
+                        onEdited();
                       }}
                     />
                     <Button
@@ -286,23 +287,24 @@ export function SoulsPanel({ parsed }: { parsed: ParsedSave }) {
                       </div>
                       {collected ? (
                         TIERS.map(({ which, dot }) => (
-                          <label
+                          <div
                             key={which}
                             title={which}
                             className="flex items-center gap-1.5 text-xs text-muted"
                           >
                             <span className={`size-2 rounded-full ${dot}`} />
-                            <ValidatedNumber
-                              ariaLabel={`${match.name} ${which} souls`}
-                              className="w-14 font-mono"
+                            <RollStepper
+                              className="w-24"
                               value={soul[which]}
+                              step={1}
                               max={0xffff}
+                              ariaLabel={`${match.name} ${which} souls`}
                               onCommit={(v) => {
-                                soul[which] = v;
                                 setYoKaiSoul(parsed, soul.index, which, v);
+                                rerender();
                               }}
                             />
-                          </label>
+                          </div>
                         ))
                       ) : (
                         <Button
