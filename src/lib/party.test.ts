@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { diffByteRanges } from "./byte-diff";
 import { parseSave } from "./save-format";
 import { buildSkeleton } from "./test-skeleton";
 import {
@@ -53,9 +54,14 @@ describe("party slots", () => {
     writeSlot(parsed, "party", 5, { level: 99 });
     const after = parsed.data;
     const slot5Start = 166627 + 5 * 469;
-    // Everything before slot 5 (and after it) must be untouched.
-    expect(after.subarray(0, slot5Start)).toEqual(before.subarray(0, slot5Start));
-    expect(after.subarray(slot5Start + 469)).toEqual(before.subarray(slot5Start + 469));
+    // Everything before slot 5 (and after it) must be untouched. Diff the
+    // bytes directly: toEqual on ~1 MB arrays takes seconds.
+    const diff = diffByteRanges(before, after);
+    expect(diff.ranges.length).toBeGreaterThan(0);
+    for (const range of diff.ranges) {
+      expect(range.start).toBeGreaterThanOrEqual(slot5Start);
+      expect(range.end).toBeLessThanOrEqual(slot5Start + 469);
+    }
     // And slot 5 itself must hold the new level.
     expect(readParty(parsed)[5].level).toBe(99);
   });

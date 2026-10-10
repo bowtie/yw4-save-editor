@@ -8,6 +8,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { diffByteRanges } from "./byte-diff";
 import { parseSave } from "./save-format";
 import {
   fieldNameCrc,
@@ -174,7 +175,9 @@ describe("system settings writes", () => {
   });
 });
 
-describe("real SYSTEM dump", () => {
+// The dumps live under the git-ignored tools/ folder, so most clones (and CI)
+// skip this suite rather than failing on an empty it.each.
+describe.skipIf(REAL_SYSTEM.length === 0)("real SYSTEM dump", () => {
   it.each(REAL_SYSTEM)("decodes the real options blob (%s)", (path) => {
     const parsed = parseSave(new Uint8Array(readFileSync(path)));
     const settings = readSystemSettings(parsed);
@@ -188,7 +191,7 @@ describe("real SYSTEM dump", () => {
     const original = parsed.data.slice();
     const entry = settings.byName.get("AllGraphic")!;
     writeSystemSetting(parsed, entry, entry.value);
-    expect(parsed.data).toEqual(original);
+    expect(diffByteRanges(original, parsed.data).changed).toBe(0);
   });
 });
 

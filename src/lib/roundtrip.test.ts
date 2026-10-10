@@ -102,13 +102,21 @@ describe("identity round-trip (zero edits → zero byte drift)", () => {
   it("reproduces the switch skeleton byte-for-byte", () => {
     const bytes = buildSkeleton("switch");
     const parsed = parseSave(bytes);
-    expect(parsed.data).toEqual(bytes);
+    expect(diffByteRanges(bytes, parsed.data)).toEqual({
+      ranges: [],
+      changed: 0,
+      sameLength: true,
+    });
   });
 
   it("reproduces the ps4 skeleton byte-for-byte", () => {
     const bytes = buildSkeleton("ps4");
     const parsed = parseSave(bytes);
-    expect(parsed.data).toEqual(bytes);
+    expect(diffByteRanges(bytes, parsed.data)).toEqual({
+      ranges: [],
+      changed: 0,
+      sameLength: true,
+    });
   });
 
   it("re-parsing the output yields the identical structure (idempotence)", () => {
