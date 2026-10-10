@@ -334,14 +334,27 @@ export const PLAYER_ACCENTS: Record<string, string> = {
 
 /** The rounded accent-tinted portrait badge; shared by the Characters tiles
  *  and the Player name rows so both pages present protagonists identically. */
-export function Portrait({ name, size = 72 }: { name: string; size?: number }) {
+export function Portrait({
+  name,
+  size = 72,
+  fill = false,
+}: {
+  name: string;
+  size?: number;
+  /** Stretch to the row's full height (width stays `size`), so a taller
+   *  row has no empty band above and below the badge. */
+  fill?: boolean;
+}) {
   const accent = PLAYER_ACCENTS[name] ?? "#3e63dd";
   return (
     <div
-      className="flex shrink-0 items-center justify-center self-center rounded-xl border-2"
+      className={`flex shrink-0 items-center justify-center rounded-xl border-2 ${
+        fill ? "self-stretch" : "self-center"
+      }`}
       style={{
         width: size,
-        height: size,
+        height: fill ? undefined : size,
+        minHeight: size,
         background: `linear-gradient(180deg, ${accent}36, ${accent}0a)`,
         borderColor: `color-mix(in oklab, ${accent} 40%, #0d0a0c)`,
       }}

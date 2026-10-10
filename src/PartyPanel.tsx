@@ -41,8 +41,8 @@ function CharacterTile({
         acquired ? "border-border" : "border-dashed border-border"
       }`}
     >
-      <div className={acquired ? "self-center" : "self-center opacity-50 grayscale"}>
-        <Portrait name={spriteName} />
+      <div className={`flex self-stretch ${acquired ? "" : "opacity-50 grayscale"}`}>
+        <Portrait name={spriteName} fill />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="truncate text-sm font-semibold">{displayName}</p>

@@ -353,11 +353,6 @@ export default function Editor() {
         )}
       </main>
 
-      <footer className="mt-8 text-center text-xs text-muted">
-        Everything runs in your browser. Nothing is uploaded and your save file is never
-        overwritten. Back up before you edit. Unofficial fan tool, not affiliated with Level-5.
-      </footer>
-
       {/* Mounted only while open: HeroUI's DialogTrigger ignores programmatic
           isOpen flips after mount, so closing must unmount the overlay. */}
       {confirmState.isOpen && (
