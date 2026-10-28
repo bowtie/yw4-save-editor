@@ -104,19 +104,18 @@ export function SaveFolderDrop({
       <img src={WATCH_UP_ICON} alt="" className="mx-auto mb-3 size-14 object-contain" />
       <p className="font-semibold">Drop your save folder here</p>
       <p className="mt-1 text-sm text-muted">
-        One folder is enough. The platform is detected automatically. Your download includes a
-        backup of the original.
+        One folder is enough. Your download includes a backup of the original.
       </p>
       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
         <span className="flex items-center gap-2 whitespace-nowrap text-sm text-muted">
-          <PlatformBadge platform="switch" size={26} /> Nintendo Switch
+          <PlatformBadge platform="switch" size={26} /> Switch
         </span>
         <span className="flex items-center gap-2 whitespace-nowrap text-sm text-muted">
-          <PlatformBadge platform="ps4" size={26} /> PlayStation 4
+          <PlatformBadge platform="ps4" size={26} /> PS4
         </span>
       </div>
       <span className="mt-4 inline-block text-sm text-accent" role={busy ? "status" : undefined}>
-        {busy ? "Reading save…" : "Browse folder…"}
+        {busy ? "Reading save…" : "or browse"}
       </span>
       <input
         ref={inputRef}

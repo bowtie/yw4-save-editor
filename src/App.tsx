@@ -383,18 +383,15 @@ export default function Editor() {
                     guardDiscard({
                       title: "Reset all edits?",
                       body: "Every change on every tab goes back to the file you dropped in.",
-                      confirm: "Reset edits",
+                      confirm: "Reset",
                       run: resetEdits,
                     })
                   }
                 >
-                  <span className="hidden sm:inline">Reset edits</span>
-                  <span className="sm:hidden">Reset</span>
+                  Reset
                 </Button>
                 <Button variant="primary" isDisabled={!dirty} onPress={requestDownload}>
-                  <DownloadIcon size={15} />
-                  <span className="hidden sm:inline">Download edited save</span>
-                  <span className="sm:hidden">Download</span>
+                  <DownloadIcon size={15} /> Download
                 </Button>
               </div>
             </CardContent>

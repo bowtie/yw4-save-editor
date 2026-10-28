@@ -152,3 +152,21 @@ body {
 .button:active:not(:disabled) {
   transform: scale(0.96);
 }
+
+/* Toasts: the library draws a faint white inset ring and top-aligns the
+   status icon. Use the app's own border and corner radius, and centre the icon
+   on the text (on the title line when there is a description underneath). */
+.toast {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--tile-radius);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+}
+
+.toast:has(.toast__description) {
+  align-items: flex-start;
+}
+
+.toast:has(.toast__description) .toast__indicator {
+  margin-top: -3px;
+}
