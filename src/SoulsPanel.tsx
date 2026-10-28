@@ -437,13 +437,23 @@ export function SoulsPanel({ parsed }: { parsed: ParsedSave }) {
   const giveAll = () => {
     // All 34 general souls: sol* items are konkatsu equipment crafting
     // materials (the bag's legit residents); wisp currency is not an item.
-    let added = 0;
+    const owned = new Map(readInventory(parsed, def).map((slot) => [slot.crc, slot]));
+    let changed = 0;
     for (const crc of GENERAL_SOULS) {
-      if (giveItem(parsed, def, crc, 99) !== null) added++;
+      const slot = owned.get(crc);
+      if (slot) {
+        // already owned: top the stack up to a full 99
+        if (slot.quantity < 99) {
+          setQuantity(parsed, def, slot.index, 99);
+          changed++;
+        }
+      } else if (giveItem(parsed, def, crc, 99) !== null) {
+        changed++;
+      }
     }
     rerender();
-    if (added > 0) toast.success(`Added ${added} soul${added === 1 ? "" : "s"} to the bag.`);
-    else toast.warning("Nothing to add.");
+    if (changed > 0) toast.success(`Filled ${changed} soul${changed === 1 ? "" : "s"} to 99.`);
+    else toast.warning("Every general soul is already at 99.");
   };
 
   const lead = (

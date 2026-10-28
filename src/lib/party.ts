@@ -7,6 +7,7 @@
  *  further in the bulk data are left alone either way.
  */
 
+import { SWITCH_SECTION2_START } from "./editor";
 import type { ParsedSave } from "./save-format";
 
 /** Bulk-region base offsets (switch-space, translated by bulkOffset). */
@@ -60,7 +61,7 @@ function slotOffset(parsed: ParsedSave, base: number, index: number): number {
 function bulk(parsed: ParsedSave, switchOffset: number): number {
   const sec2 = parsed.sections[2];
   if (!sec2) throw new Error("Save has no bulk region.");
-  return sec2.offset + (switchOffset - 35395);
+  return sec2.offset + (switchOffset - SWITCH_SECTION2_START);
 }
 
 function readName(data: Uint8Array, off: number): string {

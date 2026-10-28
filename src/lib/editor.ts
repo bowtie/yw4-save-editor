@@ -11,7 +11,12 @@
 
 import { itemByCrc, type ItemCategory } from "./item-data";
 import { nameForBase } from "./characters";
-import { findRecord, readRecordBytes as getRecordBytes, type ParsedSave } from "./save-format";
+import {
+  findRecord,
+  KEY_PLAYER_NAMES,
+  readRecordBytes as getRecordBytes,
+  type ParsedSave,
+} from "./save-format";
 
 // ── layout constants ───────────────────────────────────────────────────────
 
@@ -43,10 +48,7 @@ function view(parsed: ParsedSave): DataView {
 // record keys (crc32 of the game's internal field names)
 export const KEY_MONEY = 0xb7df13e4;
 export const KEY_MONEY_SPENT = 0x8127b2c2;
-export const KEY_PLAYER_NAMES = 0x3c823935; // 6 slots x 36 bytes
-export const KEY_MAP_ID = 0x19560d9a;
-export const KEY_SAFE_MAP_ID = 0xd149530b;
-export const KEY_POS = 0x4b7664ab; // 16 bytes: x/y/z floats
+export { KEY_PLAYER_NAMES }; // 6 slots x 36 bytes
 export const KEY_PLAY_TIME = 0x3a40c52c;
 export const KEY_GLOBAL_BYTE_FLAG = 0x2e5f582c; // section 1
 
@@ -364,15 +366,27 @@ export interface YokaiSoulSlot {
   gold: number;
 }
 
+/** A ledger row exists once it has a species id or any soul count. Counting
+ *  only the souls would make a row vanish the moment its last soul is taken
+ *  away, and let an append overwrite it. */
+function ledgerRowExists(v: DataView, off: number): boolean {
+  return (
+    v.getUint32(off + 12, true) !== 0 ||
+    v.getUint16(off + YOKAI_SOULS.white, true) !== 0 ||
+    v.getUint16(off + YOKAI_SOULS.red, true) !== 0 ||
+    v.getUint16(off + YOKAI_SOULS.gold, true) !== 0
+  );
+}
+
 export function readYoKaiSouls(parsed: ParsedSave): YokaiSoulSlot[] {
   const v = view(parsed);
   const out: YokaiSoulSlot[] = [];
   for (let i = 0; i < YOKAI_SOULS.count; i++) {
     const off = bulkOffset(parsed, YOKAI_SOULS.base) + i * YOKAI_SOULS.stride;
+    if (!ledgerRowExists(v, off)) continue;
     const white = v.getUint16(off + YOKAI_SOULS.white, true);
     const red = v.getUint16(off + YOKAI_SOULS.red, true);
     const gold = v.getUint16(off + YOKAI_SOULS.gold, true);
-    if (white === 0 && red === 0 && gold === 0) continue;
     const crc = v.getUint32(off + 12, true);
     out.push({
       index: i,
@@ -405,9 +419,8 @@ export function setYoKaiSoul(
 
 /* ── soul ledger row creation (dual-write) ──────────────────────────────── */
 
-/** Tuple keys of the ledger's tagged records, crc32 of the native field
- *  names; each is the crc32 of the native field name). */
-/** Exported for the change reporter's diff-preview labels. */
+/** Tuple keys of the ledger's tagged records: each is the crc32 of the native
+ *  field name. Exported for the change reporter's diff-preview labels. */
 export const SOUL_KEYS = {
   soulUnique: 0xd344531f,
   handle: 0x918020d9,
@@ -460,10 +473,7 @@ export function addYoKaiSoulRow(
   const bulkBase = bulkOffset(parsed, YOKAI_SOULS.base);
   while (index < YOKAI_SOULS.count) {
     const off = bulkBase + index * YOKAI_SOULS.stride;
-    const w = v.getUint16(off + YOKAI_SOULS.white, true);
-    const r = v.getUint16(off + YOKAI_SOULS.red, true);
-    const g = v.getUint16(off + YOKAI_SOULS.gold, true);
-    if (w === 0 && r === 0 && g === 0) break;
+    if (!ledgerRowExists(v, off)) break;
     maxOrder = Math.max(maxOrder, v.getUint32(off + 24, true));
     index++;
   }

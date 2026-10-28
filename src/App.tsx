@@ -255,7 +255,8 @@ export default function Editor() {
     a.href = url;
     a.download = "yw4-save-edited.zip";
     a.click();
-    URL.revokeObjectURL(url);
+    // Revoking straight away can cancel the download in some browsers.
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
     confirmState.close();
     toast.success("Downloaded yw4-save-edited.zip", {
       description: `Copy edited/${saveFile.fileName} into your save folder. original-backup/ holds your untouched file.`,

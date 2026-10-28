@@ -12,13 +12,10 @@ import { IDENT_BIG, IDENT_C, TAIL_SIZE } from "./skeleton-data";
 import { findRecord, type ParsedSave } from "./save-format";
 import {
   KEY_GLOBAL_BYTE_FLAG,
-  KEY_MAP_ID,
   KEY_MONEY,
   KEY_MONEY_SPENT,
   KEY_PLAYER_NAMES,
-  KEY_POS,
   KEY_PLAY_TIME,
-  KEY_SAFE_MAP_ID,
 } from "./editor";
 
 const hex = (n: number) => "0x" + n.toString(16);
@@ -28,9 +25,6 @@ const REQUIRED_RECORDS: readonly { section: 0 | 1; key: number; why: string }[] 
   { section: 0, key: KEY_MONEY, why: "money" },
   { section: 0, key: KEY_MONEY_SPENT, why: "money spent" },
   { section: 0, key: KEY_PLAYER_NAMES, why: "protagonist names" },
-  { section: 0, key: KEY_MAP_ID, why: "current map" },
-  { section: 0, key: KEY_SAFE_MAP_ID, why: "safe respawn map" },
-  { section: 0, key: KEY_POS, why: "player position" },
   { section: 0, key: KEY_PLAY_TIME, why: "play time" },
   { section: 1, key: KEY_GLOBAL_BYTE_FLAG, why: "global flags (crank-a-kai counters)" },
 ];

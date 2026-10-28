@@ -19,6 +19,7 @@ import {
   writeCrank,
   writeMoney,
   writeName,
+  YOKAI_SOULS,
 } from "./editor";
 
 const skeleton = () => parseSave(buildSkeleton("switch"));
@@ -198,6 +199,23 @@ describe("yo-kai souls", () => {
     const parsed = skeleton();
     setYoKaiSoul(parsed, 499, "white", 0xffff);
     expect(readYoKaiSouls(parsed)[0]).toMatchObject({ index: 499, white: 0xffff });
+  });
+
+  it("keeps a ledger row when its last soul is taken away", () => {
+    const parsed = skeleton();
+    // A row the game created: species id at +12, then some souls.
+    const off =
+      bulkStart(parsed) + (YOKAI_SOULS.base - SWITCH_SECTION2_START) + 3 * YOKAI_SOULS.stride;
+    new DataView(parsed.data.buffer, parsed.data.byteOffset).setUint32(off + 12, 0xabc12345, true);
+    setYoKaiSoul(parsed, 3, "white", 2);
+    setYoKaiSoul(parsed, 3, "gold", 1);
+    for (const tier of ["white", "red", "gold"] as const) setYoKaiSoul(parsed, 3, tier, 0);
+    expect(readYoKaiSouls(parsed).find((r) => r.paramId === 0xabc12345)).toMatchObject({
+      index: 3,
+      white: 0,
+      red: 0,
+      gold: 0,
+    });
   });
 
   it("rejects out-of-range soul slots", () => {

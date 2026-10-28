@@ -87,6 +87,7 @@ export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
     const index = PARTY_SLOT_FOR_NAME[i];
     const slot = party[index];
     if (!slot || !acquired(i)) return;
+    if (patch.level !== undefined) patch = { ...patch, level: Math.max(1, patch.level) };
     if ((patch.level ?? slot.level) >= LEVEL_CAP) {
       patch = { ...patch, xp: 0 };
     } else {
@@ -155,6 +156,7 @@ export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
                         className="min-w-0 flex-1"
                         value={here && slot ? slot.level : 0}
                         step={1}
+                        min={1}
                         max={LEVEL_CAP}
                         disabled={!here}
                         ariaLabel={`${NAME_LABELS[i]} level`}
