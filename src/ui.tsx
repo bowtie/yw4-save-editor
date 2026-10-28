@@ -849,3 +849,38 @@ export function ConfirmDialog({
     </Modal>
   );
 }
+
+/* ── Art preloading ──────────────────────────────────────────────────────── */
+
+// Held for the page's lifetime so the browser keeps the decoded sheets.
+const preloadedImages: HTMLImageElement[] = [];
+
+function preloadImage(url: string): void {
+  const img = new Image();
+  img.decoding = "async";
+  img.src = url;
+  preloadedImages.push(img);
+}
+
+function preloadSheets(folders: string[]): void {
+  for (const folder of folders) {
+    void loadManifest(folder).then((m) => {
+      for (const page of m?.pages ?? []) preloadImage(sheetUrl(folder, page.file));
+    });
+  }
+}
+
+/** Start fetching the game art as soon as the app loads, while the person is
+ *  still on the drop screen, so icons are already there when the editor opens
+ *  instead of popping in tab by tab. The equipment sheet (the biggest, and only
+ *  needed on one Inventory tab) waits for an idle moment. */
+export function preloadArt(): void {
+  preloadSheets(["Yokai", "Items", "Tribes"]);
+  preloadImage(PLAYER_VARIANTS["2x"].url);
+  loadPlayerManifest().catch(() => {});
+  const idle: (cb: () => void) => void =
+    "requestIdleCallback" in window
+      ? (cb) => window.requestIdleCallback(cb)
+      : (cb) => window.setTimeout(cb, 1500);
+  idle(() => preloadSheets(["Equipments"]));
+}
