@@ -20,12 +20,16 @@ import { classifyAll, sniffDataBinSlots, type DroppedFile } from "./lib/file-sel
 import { detectSide, parseSave, type ParsedSave } from "./lib/save-format";
 import { assertEditableLayout } from "./lib/validate";
 import { describeChanges, type ChangeGroup } from "./lib/change-report";
+import { makeZip } from "./lib/zip";
+import { summarizeEdits } from "./lib/edit-summary";
 
 interface EditableSave {
   platform: "switch" | "ps4";
   slot: string;
   fileName: string;
   file: File;
+  /** Slot inferred from the file contents, not from a folder name. */
+  guessed?: boolean;
 }
 
 /** A pending action that would throw away unsaved edits, plus its prompt. */
@@ -48,7 +52,7 @@ const TABS: { id: TabId; label: string }[] = [
 
 export default function Editor() {
   const [saves, setSaves] = useState<EditableSave[]>([]);
-  const [notes, setNotes] = useState<string[]>([]);
+  const [notes, setNotes] = useState<{ text: string; warn?: boolean }[]>([]);
   const [selectedSave, setSelectedSave] = useState(0);
   const [parsed, setParsed] = useState<ParsedSave | null>(null);
   const [tab, setTab] = useState<TabId>("player");
@@ -66,15 +70,35 @@ export default function Editor() {
     AUTOSAVE: "Auto Save",
   };
 
+  /** "Switch · User Save", marked when the slot was guessed from contents. */
+  const slotTitle = (save: EditableSave) =>
+    `${save.platform === "switch" ? "Switch" : "PS4"} · ${SLOT_LABELS[save.slot] ?? save.slot}${save.guessed ? " (detected)" : ""}`;
+
+  const [loading, setLoading] = useState(false);
+
   const handleFiles = useCallback(async (dropped: DroppedFile[]) => {
+    setLoading(true);
+    try {
+      await readDropped(dropped);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const readDropped = async (dropped: DroppedFile[]) => {
     const { switchSlots, ps4Slots, notes: foundNotes } = classifyAll(dropped);
-    const notes = [...foundNotes];
+    const notes: { text: string; warn?: boolean }[] = foundNotes.map((text) => ({ text }));
+    const guessedSlots = new Set<string>();
     if (!switchSlots.USERDATA00 && !ps4Slots.USERDATA00) {
       // Bare data.bin drops carry no slot folder name; sniff the contents.
       const sniffed = await sniffDataBinSlots(dropped);
       Object.assign(switchSlots, sniffed);
-      if (switchSlots.USERDATA00) {
-        notes.push("data.bin identified by its contents (no slot folder name).");
+      for (const slot of Object.keys(sniffed)) {
+        if (!SLOT_LABELS[slot]) continue;
+        guessedSlots.add(slot);
+        notes.push({
+          text: `No slot folder name, so this was identified as ${SLOT_LABELS[slot]} from its contents.`,
+        });
       }
     }
 
@@ -86,6 +110,7 @@ export default function Editor() {
           slot,
           fileName: entry.file.name,
           file: entry.file,
+          guessed: guessedSlots.has(slot),
         });
       }
     }
@@ -113,7 +138,16 @@ export default function Editor() {
           const parsed = parseSave(new Uint8Array(await save.file.arrayBuffer()));
           const side = detectSide(parsed);
           if (side && side !== save.platform) {
-            notes.push(`${save.fileName} looks like a ${side === "ps4" ? "PS4" : "Switch"} save.`);
+            const sideName = side === "ps4" ? "PS4" : "Switch";
+            if (save.guessed) {
+              // No folder to go by: the file's own layout is the best evidence.
+              save.platform = side;
+            } else {
+              notes.push({
+                text: `${save.fileName} sits in a ${save.platform === "ps4" ? "PS4" : "Switch"} folder but its contents look like a ${sideName} save.`,
+                warn: true,
+              });
+            }
           }
         } catch {
           /* unreadable: loadSave reports it when the slot is opened */
@@ -127,8 +161,8 @@ export default function Editor() {
     setSaves([...found]);
     setNotes(notes);
     setSelectedSave(0);
-    void loadSave(found[0]);
-  }, []);
+    await loadSave(found[0]);
+  };
 
   const loadSave = async (save: EditableSave | undefined, { keepTab = false } = {}) => {
     if (!save) return;
@@ -187,6 +221,15 @@ export default function Editor() {
     discardState.open();
   };
 
+  // Panels edit parsed.data in place without telling the app, so watch the
+  // bytes to drive the unsaved-changes indicator and the Download button.
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    const id = window.setInterval(() => setDirty(hasEdits()), 400);
+    setDirty(hasEdits());
+    return () => window.clearInterval(id);
+  });
+
   // Closing the tab with unsaved edits silently discards them — intervene.
   useEffect(() => {
     const guard = (e: BeforeUnloadEvent) => {
@@ -209,65 +252,75 @@ export default function Editor() {
   const download = () => {
     const saveFile = saves[selectedSave];
     const data = parsed?.data;
-    if (!saveFile || !data) return;
-    const blob = new Blob([data.slice().buffer as ArrayBuffer], {
-      type: "application/octet-stream",
-    });
+    const original = originalRef.current;
+    if (!saveFile || !data || !original) return;
+    // Ship the untouched original beside the edit, so a backup always exists
+    // and the edited file can't silently overwrite the only copy.
+    const zip = makeZip([
+      { name: `edited/${saveFile.fileName}`, data },
+      { name: `original-backup/${saveFile.fileName}`, data: original },
+    ]);
+    const blob = new Blob([zip.slice().buffer as ArrayBuffer], { type: "application/zip" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = saveFile.fileName;
+    a.download = "yw4-save-edited.zip";
     a.click();
     URL.revokeObjectURL(url);
     confirmState.close();
-    toast.success(`Saved ${saveFile.fileName} to your downloads.`, {
-      description: "Copy it back into your save folder (keep a backup of the original).",
+    toast.success("Downloaded yw4-save-edited.zip", {
+      description: `Copy edited/${saveFile.fileName} into your save folder. original-backup/ holds your untouched file.`,
     });
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-10">
-      <header className="mb-6 flex items-center gap-4">
-        <img src={WATCH_UP_ICON} alt="" className="size-12 shrink-0 object-contain" />
-        <h1 className="text-2xl font-bold leading-tight tracking-tight">
+    <div className="mx-auto w-full max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
+      <header className="mb-4 flex items-center gap-3 sm:mb-6 sm:gap-4">
+        <img src={WATCH_UP_ICON} alt="" className="size-10 shrink-0 object-contain sm:size-12" />
+        <h1 className="text-xl font-bold sm:text-2xl leading-tight tracking-tight">
           Yo-kai Watch 4++ Save Editor
         </h1>
       </header>
 
       <main className="flex flex-col gap-4">
         {!parsed && (
-          <Card>
-            <CardContent className="p-3.5">
-              <SaveFolderDrop onFiles={handleFiles} />
+          <Card className="p-0">
+            <CardContent className="p-3 sm:p-3.5">
+              <SaveFolderDrop onFiles={handleFiles} busy={loading} />
             </CardContent>
           </Card>
         )}
 
         {parsed && saves[selectedSave] && (
-          <Card>
-            <CardContent className="flex flex-col gap-3 p-3.5">
+          <Card className="p-0">
+            <CardContent className="flex flex-col gap-3 p-3 sm:p-3.5">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  {saves.map((save, i) => (
-                    <Button
-                      key={`${save.platform}-${save.slot}`}
-                      size="sm"
-                      variant={i === selectedSave ? "primary" : "outline"}
-                      aria-label={`${save.platform === "switch" ? "Switch" : "PS4"} ${SLOT_LABELS[save.slot] ?? save.slot} (${save.fileName})`}
-                      onPress={() => {
-                        if (i === selectedSave) return;
-                        guardDiscard({
-                          title: "Switch saves and discard your edits?",
-                          body: `Your unsaved edits to ${SLOT_LABELS[saves[selectedSave].slot] ?? saves[selectedSave].slot} will be lost. Download first to keep them.`,
-                          confirm: "Discard and switch",
-                          run: () => void onPickSave(i),
-                        });
-                      }}
-                    >
-                      {save.platform === "switch" ? "Switch" : "PS4"}{" "}
-                      {SLOT_LABELS[save.slot] ?? save.slot}
-                    </Button>
-                  ))}
+                  {saves.length === 1 ? (
+                    <span className="rounded-lg bg-surface-secondary px-3 py-1 text-sm font-medium">
+                      {slotTitle(saves[0])}
+                    </span>
+                  ) : (
+                    saves.map((save, i) => (
+                      <Button
+                        key={`${save.platform}-${save.slot}`}
+                        size="sm"
+                        variant={i === selectedSave ? "primary" : "outline"}
+                        aria-label={`${slotTitle(save)} (${save.fileName})`}
+                        onPress={() => {
+                          if (i === selectedSave) return;
+                          guardDiscard({
+                            title: "Switch saves and discard your edits?",
+                            body: `Your edits to ${SLOT_LABELS[saves[selectedSave].slot] ?? saves[selectedSave].slot} will be lost. Download first to keep them.`,
+                            confirm: "Discard and switch",
+                            run: () => void onPickSave(i),
+                          });
+                        }}
+                      >
+                        {slotTitle(save)}
+                      </Button>
+                    ))
+                  )}
                   <PlatformBadge
                     platform={saves[selectedSave].platform}
                     size={28}
@@ -275,9 +328,12 @@ export default function Editor() {
                   />
                 </div>
                 {notes.length > 0 && (
-                  <div className="flex flex-col text-xs text-muted">
+                  <div className="flex flex-col gap-0.5 text-xs">
                     {notes.map((note, i) => (
-                      <p key={i}>{note}</p>
+                      <p key={i} className={note.warn ? "text-warning" : "text-muted"}>
+                        {note.warn ? "⚠ " : ""}
+                        {note.text}
+                      </p>
                     ))}
                   </div>
                 )}
@@ -291,7 +347,11 @@ export default function Editor() {
                 <Tabs.ListContainer>
                   <Tabs.List>
                     {TABS.map((t) => (
-                      <Tabs.Tab key={t.id} id={t.id}>
+                      <Tabs.Tab
+                        key={t.id}
+                        id={t.id}
+                        className="whitespace-nowrap px-2 text-[13px] sm:px-3 sm:text-sm"
+                      >
                         <Tabs.Indicator />
                         {t.label}
                       </Tabs.Tab>
@@ -299,7 +359,7 @@ export default function Editor() {
                   </Tabs.List>
                 </Tabs.ListContainer>
                 {TABS.map((t) => (
-                  <Tabs.Panel key={t.id} id={t.id}>
+                  <Tabs.Panel key={t.id} id={t.id} className="p-0 pt-3">
                     {t.id === "player" && <PlayerPanel key={version} parsed={parsed} />}
                     {t.id === "party" && <PartyPanel key={version} parsed={parsed} />}
                     {t.id === "yokai" && <YokaiPanel key={version} parsed={parsed} />}
@@ -309,20 +369,34 @@ export default function Editor() {
                 ))}
               </Tabs>
 
-              <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="sticky bottom-2 z-20 flex items-center justify-end gap-1 rounded-xl border border-border bg-surface/90 p-2 shadow-lg backdrop-blur">
+                <span
+                  role="status"
+                  className="mr-auto flex items-center gap-2 pl-1 text-xs text-muted"
+                  aria-label={dirty ? "Edited, not downloaded yet" : "No edits yet"}
+                >
+                  <span
+                    className={`size-2 rounded-full ${dirty ? "bg-warning" : "bg-border-secondary"}`}
+                  />
+                  <span className="hidden sm:inline">
+                    {dirty ? "Edited · not downloaded yet" : "No edits yet"}
+                  </span>
+                  {dirty && <span className="sm:hidden">Edited</span>}
+                </span>
                 <Button
                   size="sm"
                   variant="ghost"
                   onPress={() =>
                     guardDiscard({
                       title: "Load another save?",
-                      body: "Your unsaved edits will be lost. Download first to keep them.",
+                      body: "Your edits will be lost. Download first to keep them.",
                       confirm: "Discard and load another",
                       run: reset,
                     })
                   }
                 >
-                  Load another save
+                  <span className="hidden sm:inline">Load another save</span>
+                  <span className="sm:hidden">Load</span>
                 </Button>
                 <Button
                   size="sm"
@@ -337,10 +411,13 @@ export default function Editor() {
                     })
                   }
                 >
-                  Reset edits
+                  <span className="hidden sm:inline">Reset edits</span>
+                  <span className="sm:hidden">Reset</span>
                 </Button>
-                <Button size="sm" variant="primary" onPress={requestDownload}>
-                  <DownloadIcon size={15} /> Download edited save
+                <Button size="sm" variant="primary" isDisabled={!dirty} onPress={requestDownload}>
+                  <DownloadIcon size={15} />
+                  <span className="hidden sm:inline">Download edited save</span>
+                  <span className="sm:hidden">Download</span>
                 </Button>
               </div>
             </CardContent>
@@ -431,29 +508,47 @@ function DownloadPreview({
   if (changes.length === 0) {
     return (
       <p className="text-sm text-muted">
-        No edits detected. The download will be identical to the file you dropped in.
+        No edits detected. The edited save in the zip will be identical to the file you dropped in.
       </p>
     );
   }
+  const summary = summarizeEdits(original, parsed);
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm">
-        {changes.length} region{changes.length === 1 ? "" : "s"} changed ·{" "}
-        {totalBytes.toLocaleString()} bytes total. The download contains your edits; the original
-        file on disk is untouched.
-      </p>
-      <ScrollShadow className="max-h-64 rounded-xl border border-border bg-surface-secondary/50 p-2">
+    <div className="flex flex-col gap-3">
+      {summary.length > 0 && (
         <ul className="flex flex-col gap-1 text-sm">
-          {changes.map((group, i) => (
-            <li key={i} className="flex items-baseline justify-between gap-3">
-              <span className="min-w-0 truncate">{group.label}</span>
-              <span className="shrink-0 font-mono text-xs text-muted">
-                {group.bytes} byte{group.bytes === 1 ? "" : "s"}
+          {summary.map((line, i) => (
+            <li key={i} className="flex gap-2">
+              <span aria-hidden className="text-accent">
+                •
               </span>
+              <span className="min-w-0">{line}</span>
             </li>
           ))}
         </ul>
-      </ScrollShadow>
+      )}
+      <p className="text-xs text-muted">
+        The zip contains your edited save plus an untouched copy of the original as a backup; the
+        file on disk is never modified.
+      </p>
+      <details className="text-xs text-muted">
+        <summary className="cursor-pointer select-none">
+          Technical detail: {changes.length} byte region{changes.length === 1 ? "" : "s"} ·{" "}
+          {totalBytes.toLocaleString()} bytes
+        </summary>
+        <ScrollShadow className="mt-2 max-h-48 rounded-xl border border-border bg-surface-secondary/50 p-2">
+          <ul className="flex flex-col gap-1">
+            {changes.map((group, i) => (
+              <li key={i} className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 truncate">{group.label}</span>
+                <span className="shrink-0 font-mono">
+                  {group.bytes} byte{group.bytes === 1 ? "" : "s"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </ScrollShadow>
+      </details>
     </div>
   );
 }
