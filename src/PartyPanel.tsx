@@ -10,7 +10,6 @@ import type { ParsedSave } from "./lib/save-format";
 import { ExpStepper, Portrait, PLAYER_ACCENTS, RollStepper } from "./ui";
 import { nameForParam } from "./lib/characters";
 import { expToNext, LEVEL_CAP } from "./lib/exp-curve";
-import { LockIcon } from "./icons";
 
 const SPRITE_NAMES = ["Nate", "Summer", "Touma", "Akinori", "Katie", "Shin"];
 
@@ -34,51 +33,50 @@ function CharacterTile({
   const displayName = FULL_NAMES[resolvedName] || resolvedName || `Character ${slot.index + 1}`;
   const accent = PLAYER_ACCENTS[spriteName] ?? "#3e63dd";
 
+  // Same bordered box as the Player tab's name rows; unacquired slots get a
+  // dashed border, a greyed portrait and no inputs.
   return (
-    <Card
-      className={acquired ? "overflow-hidden" : "overflow-hidden border-dashed"}
-      style={{ border: "1px solid rgb(255 255 255 / 0.06)" }}
+    <div
+      className={`flex min-w-0 items-center gap-3 rounded-xl border bg-surface-secondary/50 p-1.5 pr-2.5 ${
+        acquired ? "border-border" : "border-dashed border-border"
+      }`}
     >
-      <CardContent className="flex flex-col gap-2.5 p-3 @container">
-        <div className="flex items-center gap-3">
-          <Portrait name={spriteName} />
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <p className="min-w-0 flex-1 truncate text-sm font-semibold">{displayName}</p>
-            </div>
-            {acquired ? (
+      <div className={`flex self-stretch ${acquired ? "" : "opacity-50 grayscale"}`}>
+        <Portrait name={spriteName} fill />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <p className="truncate text-sm font-semibold">{displayName}</p>
+        {acquired ? (
+          <>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <span className="w-7 shrink-0">Lv</span>
               <RollStepper
+                className="min-w-0 flex-1"
                 value={slot.level}
                 step={1}
                 max={LEVEL_CAP}
                 ariaLabel="Level"
                 onCommit={(v) => onCommit(slot.index, { level: v })}
               />
-            ) : (
-              <p className="flex items-center gap-2 text-xs text-muted">
-                <LockIcon size={13} />
-                Not acquired yet.
-              </p>
-            )}
-          </div>
-        </div>
-        {acquired && (
-          <ExpStepper
-            xp={slot.xp}
-            toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1))}
-            maxed={slot.level >= LEVEL_CAP}
-            accent={accent}
-            onCommit={(v) => onCommit(slot.index, { xp: v })}
-          />
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <span className="w-7 shrink-0">EXP</span>
+              <div className="min-w-0 flex-1">
+                <ExpStepper
+                  xp={slot.xp}
+                  toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1))}
+                  maxed={slot.level >= LEVEL_CAP}
+                  accent={accent}
+                  onCommit={(v) => onCommit(slot.index, { xp: v })}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-muted">Not in your party yet</p>
         )}
-        {!acquired && (
-          <p className="text-[11px] leading-tight text-muted opacity-80">
-            This slot fills in when the character joins your party in-game. The editor never writes
-            to it.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -114,11 +112,18 @@ export function PartyPanel({ parsed }: { parsed: ParsedSave }) {
 
   return (
     <div className="@container">
-      <div className="grid grid-cols-1 gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
-        {DISPLAY_ORDER.map((i) => slots[i]).map((slot) => (
-          <CharacterTile key={slot.index} slot={slot} onCommit={commit} />
-        ))}
-      </div>
+      <Card>
+        <CardContent className="flex flex-col gap-2.5 p-3.5 @container">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Main characters
+          </p>
+          <div className="grid grid-cols-1 gap-2 @md:grid-cols-2">
+            {DISPLAY_ORDER.map((i) => slots[i]).map((slot) => (
+              <CharacterTile key={slot.index} slot={slot} onCommit={commit} />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

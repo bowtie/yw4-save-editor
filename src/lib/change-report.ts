@@ -8,7 +8,6 @@ import { diffByteRanges, type ByteRange } from "./byte-diff";
 import { bulkStart, INVENTORIES, SWITCH_SECTION2_START, YOKAI_SOULS } from "./editor";
 import { PARTY_BASE, YOKAI_BASE, SLOT_STRIDE, PARTY_SLOTS, YOKAI_SLOTS } from "./party";
 import type { ParsedSave, Yw4Record } from "./save-format";
-import type { SystemSettingEntry } from "./system-settings";
 
 /** Labels for the section-0/1 record keys this tool knows the meaning of. */
 const KEY_LABELS: Record<number, string> = {
@@ -130,37 +129,6 @@ export function describeChanges(parsed: ParsedSave, original: Uint8Array): Chang
   const groups: ChangeGroup[] = [];
   for (const range of ranges) {
     const label = labelRange(parsed, range);
-    const last = groups[groups.length - 1];
-    if (last && last.label === label && last.ranges[last.ranges.length - 1].end === range.start) {
-      last.ranges.push(range);
-      last.bytes += range.end - range.start;
-    } else {
-      groups.push({ label, bytes: range.end - range.start, ranges: [range] });
-    }
-  }
-  return groups;
-}
-
-/**
- * Labeled change groups for the SYSTEM save, using the decoded settings
- * entries so the preview says "System · Frame rate" instead of raw offsets.
- * Ranges outside known entries (prologue/epilogue bytes) cannot change via
- * the editor; if one ever differs it is reported as an unexpected region.
- */
-export function describeSystemChanges(
-  parsed: ParsedSave,
-  original: Uint8Array,
-  entries: SystemSettingEntry[],
-): ChangeGroup[] {
-  const { ranges } = diffByteRanges(original, parsed.data);
-  const groups: ChangeGroup[] = [];
-  for (const range of ranges) {
-    const entry = entries.find(
-      (e) => range.start >= e.valueOffset && range.end <= e.valueOffset + e.byteLength,
-    );
-    const label = entry
-      ? `System · ${entry.def.label}`
-      : `System · unexpected region @0x${range.start.toString(16)}`;
     const last = groups[groups.length - 1];
     if (last && last.label === label && last.ranges[last.ranges.length - 1].end === range.start) {
       last.ranges.push(range);

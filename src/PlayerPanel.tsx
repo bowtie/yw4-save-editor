@@ -100,7 +100,7 @@ export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
               >
                 <Portrait name={NAME_LABELS[i] ?? ""} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="truncate text-[11px] text-muted">{REAL_NAMES[i]}</span>
+                  <span className="truncate text-xs text-muted">{REAL_NAMES[i]}</span>
                   <NameField
                     label={NAME_LABELS[i] ?? `Name slot ${i}`}
                     value={name}

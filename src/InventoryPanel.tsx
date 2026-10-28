@@ -6,7 +6,16 @@
  *  the save derives them from story-event flags, so they can neither be read
  *  as owned nor given via the acquisition log. See tools/lua/save_flag_notes.md. */
 import { memo, useCallback, useState } from "react";
-import { Button, Checkbox, Input, ScrollShadow, toast } from "@heroui/react";
+import {
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Input,
+  ScrollShadow,
+  Tabs,
+  toast,
+} from "@heroui/react";
 import { SlotText } from "slot-text/react";
 import { play } from "cuelume";
 import {
@@ -92,7 +101,7 @@ const InventoryRow = memo(function InventoryRow({
         <RarityStars rarity={info.rarity} />
         {exclusive && (
           <span
-            className="max-w-28 shrink truncate rounded-md border border-border bg-surface-secondary px-1.5 py-0.5 text-[10px] text-muted"
+            className="max-w-28 shrink truncate rounded-md border border-border bg-surface-secondary px-1.5 py-0.5 text-xs text-muted"
             title={`Exclusive to ${exclusive}`}
           >
             {exclusive} only
@@ -196,77 +205,87 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
   };
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex flex-wrap items-center gap-1.5">
-        {EDITABLE_GROUPS.map((g) => (
-          <Button
-            key={g.id}
-            size="sm"
-            variant={g.id === groupId ? "primary" : "outline"}
-            onPress={() => setGroupId(g.id)}
-          >
-            {g.label}
-          </Button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
-          <Input
-            aria-label={`Search ${group.label}`}
-            placeholder={`Search ${group.label.toLowerCase()}…`}
-            className="w-52 ps-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onPress={() => setGroupTicked(new Set(catalog.map((i) => i.crc)))}
+    <Card>
+      <CardContent className="flex flex-col gap-2.5 p-3.5">
+        <Tabs
+          selectedKey={groupId}
+          onSelectionChange={(key) => setGroupId(key as GroupId)}
+          aria-label="Inventory sections"
         >
-          Select all
-        </Button>
-        <Button size="sm" variant="outline" onPress={() => setGroupTicked(new Set())}>
-          Clear
-        </Button>
-        <Button size="sm" variant="primary" isDisabled={giveCount === 0} onPress={giveTicked}>
-          Fill ticked ×99 · {giveCount}
-        </Button>
-        <span className="ml-auto font-mono text-xs text-muted">
-          <SlotText text={`${owned.size}/${def.count}`} /> slots used
-        </span>
-      </div>
+          <Tabs.ListContainer>
+            <Tabs.List>
+              {EDITABLE_GROUPS.map((g) => (
+                <Tabs.Tab key={g.id} id={g.id}>
+                  <Tabs.Indicator />
+                  {g.label}
+                </Tabs.Tab>
+              ))}
+            </Tabs.List>
+          </Tabs.ListContainer>
+        </Tabs>
 
-      <ScrollShadow className="max-h-96 rounded-xl border border-border bg-surface-secondary/50 p-2">
-        <div className="flex flex-col gap-0.5">
-          {shown.map(({ crc, info: item }) => {
-            const slot = owned.get(crc);
-            return (
-              <InventoryRow
-                key={crc}
-                crc={crc}
-                info={item}
-                category={def.categories[0]}
-                quantity={slot ? slot.quantity : null}
-                slotIndex={slot?.index ?? -1}
-                owned={owned.has(crc)}
-                checked={groupTicked.has(crc)}
-                exclusive={EXCLUSIVE.get(crc)}
-                onTick={handleTick}
-                onQuantity={handleQuantity}
-              />
-            );
-          })}
-          {catalog.length > shown.length && (
-            <p className="p-2 text-center text-xs text-muted">
-              {catalog.length - shown.length} more match
-              {catalog.length - shown.length === 1 ? "" : "es"}. Narrow the search to see it.
-            </p>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-48 flex-1">
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
+            <Input
+              aria-label={`Search ${group.label}`}
+              placeholder={`Search ${group.label.toLowerCase()}…`}
+              className="w-full ps-8"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onPress={() => setGroupTicked(new Set(catalog.map((i) => i.crc)))}
+          >
+            Select all
+          </Button>
+          <Button size="sm" variant="outline" onPress={() => setGroupTicked(new Set())}>
+            Clear
+          </Button>
+          <Button size="sm" variant="primary" isDisabled={giveCount === 0} onPress={giveTicked}>
+            Fill ticked ×99 · {giveCount}
+          </Button>
         </div>
-      </ScrollShadow>
-    </div>
+
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span>Tick items, then fill them to a full stack.</span>
+          <span className="font-mono">
+            <SlotText text={`${owned.size}/${def.count}`} /> slots used
+          </span>
+        </div>
+
+        <ScrollShadow className="max-h-[28rem] rounded-xl border border-border bg-surface-secondary/50 p-2">
+          <div className="flex flex-col gap-0.5">
+            {shown.map(({ crc, info: item }) => {
+              const slot = owned.get(crc);
+              return (
+                <InventoryRow
+                  key={crc}
+                  crc={crc}
+                  info={item}
+                  category={def.categories[0]}
+                  quantity={slot ? slot.quantity : null}
+                  slotIndex={slot?.index ?? -1}
+                  owned={owned.has(crc)}
+                  checked={groupTicked.has(crc)}
+                  exclusive={EXCLUSIVE.get(crc)}
+                  onTick={handleTick}
+                  onQuantity={handleQuantity}
+                />
+              );
+            })}
+            {catalog.length > shown.length && (
+              <p className="p-2 text-center text-xs text-muted">
+                {catalog.length - shown.length} more match
+                {catalog.length - shown.length === 1 ? "" : "es"}. Narrow the search to see it.
+              </p>
+            )}
+          </div>
+        </ScrollShadow>
+      </CardContent>
+    </Card>
   );
 }
