@@ -1,5 +1,5 @@
 /** Equipment exclusivity, generated from item_config's ITEM_EQUIP_COND tables
- *  (tools/g4tx/export_item_exclusivity.py; base + 4++ patch merged).
+ *  (base table + 4++ patch merged).
  *  Value = who the item is exclusive to ('&' = all of them).
  *  CRCs match src/lib/item-data.ts. */
 export const ITEM_EXCLUSIVITY: readonly (readonly [number, string])[] = [

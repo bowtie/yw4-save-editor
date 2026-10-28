@@ -6,7 +6,7 @@
  * Switch 2.2.0 / PS4 1.50 (see editor.ts). Anything that shifts that layout —
  * another game version, a different Yo-kai Watch title, a truncated file —
  * must be rejected before an edit can land on the wrong bytes. All checks
- * here are confirmed against real dumps (see docs/save-format.md).
+ * here are confirmed against real dumps.
  */
 import { IDENT_BIG, IDENT_C, TAIL_SIZE } from "./skeleton-data";
 import { findRecord, type ParsedSave } from "./save-format";

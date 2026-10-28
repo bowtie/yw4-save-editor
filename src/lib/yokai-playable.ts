@@ -1,7 +1,7 @@
 /** The game's full yo-kai roster, generated from the Ukiukipedia table
  *  (dictionary_config 213 rows: 180 Yo-kai + 16 Boss + 17 Special) with
  *  form entries from yo-docs param-ids
- *  (tools/g4tx/export_yokai_roster.py).  Every entry exists in the
+ *  Every entry exists in the
  *  game's own collection system — no yo-docs false positives. */
 export interface PlayableYokai {
   /** save signature (ParamID) stored in the yo-kai slot. */

@@ -1,7 +1,7 @@
 /** Tribe and medallium rank per yo-kai paramId (crc32 of the model
  *  name, the same id the konkatsu list and soul ledger key on), from
  *  chara_base's CHARA_BASE_BATTLE_LIST
- *  (tools/g4tx/export_yokai_base.py): field 4 = tribe, field 5 =
+ *  (CHARA_BASE_BATTLE_LIST): field 4 = tribe, field 5 =
  *  rank. Enums: tribe 1 Goriki, 2 Onnen, 3 Mononoke, 4 Tsukumono,
  *  5 Uwanosora, 6 Omamori, 8 Mikado, 9 Izana, 10 Oni, 11 Wicked,
  *  12 Shinma; rank 1 E .. 6 S. Tribe-less / rank-less rows (bosses,

@@ -1,7 +1,7 @@
 // Item database generated from yo-docs (github.com/ykw-modding/yo-docs),
 // YW4ItemIDs.md. Each id is the CRC32 of the item's internal string, stored
 // little-endian in the save's 4-byte item signature fields. Rarity is patched
-// in from the game's item_config (tools/g4tx/export_item_rarity.py).
+// in from the game's item_config.
 
 export type ItemCategory = "consumable" | "equipment" | "soul" | "key" | "yokaisoul";
 

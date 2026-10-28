@@ -1,5 +1,5 @@
 /** EXP curves, recovered from the native requirement getter
- *  (REVERSE_ENGINEERING_LOG.md ★ EXP FORMULA):
+ *  recovered from the native requirement getter):
  *
  *    threshold(L) = trunc(rate × L³)
  *    required(L → L+1) = threshold(L+1) − threshold(L)

@@ -9,7 +9,7 @@
 
 import type { ParsedSave } from "./save-format";
 
-/** Bulk-region base offsets (switch-space; see docs/save-format.md). */
+/** Bulk-region base offsets (switch-space, translated by bulkOffset). */
 export const PARTY_BASE = 166627;
 export const YOKAI_BASE = 169449;
 export const SLOT_STRIDE = 469;

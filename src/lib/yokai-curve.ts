@@ -1,5 +1,5 @@
 /** ExperienceCurve class per yo-kai species signature, generated from
- *  the game's chara_param table (tools/g4tx/export_curve_classes.py):
+ *  the game's chara_param table:
  *  field 0 = save signature, field 15 = curve class. The class indexes
  *  EXP_RATES in exp-curve.ts; every species in yo-kai-list.json except
  *  the Present World Ark (a key item) is present. */

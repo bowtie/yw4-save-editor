@@ -17,10 +17,8 @@ import {
   setQuantity,
   setYoKaiSoul,
   writeCrank,
-  writeMapId,
   writeMoney,
   writeName,
-  writePosition,
 } from "./editor";
 
 const skeleton = () => parseSave(buildSkeleton("switch"));
@@ -97,23 +95,11 @@ describe("player fields", () => {
     expect(() => writeName(parsed, 0, "あ".repeat(12))).not.toThrow();
   });
 
-  it("writes map id to both map records", () => {
+  it("round-trips crank counters", () => {
     const parsed = skeleton();
-    writeMapId(parsed, 0x36a5421e, true);
-    const info = readPlayer(parsed);
-    expect(info.mapId).toBe(0x36a5421e);
-    expect(info.safeMapId).toBe(0x36a5421e);
-  });
-
-  it("round-trips position and crank counters", () => {
-    const parsed = skeleton();
-    writePosition(parsed, 1.5, -2.25, 300.75);
     writeCrank(parsed, 0, 9);
     writeCrank(parsed, 3, 2);
     const info = readPlayer(parsed);
-    expect(info.position[0]).toBeCloseTo(1.5);
-    expect(info.position[1]).toBeCloseTo(-2.25);
-    expect(info.position[2]).toBeCloseTo(300.75);
     expect(info.crank).toEqual([9, 0, 0, 2]);
   });
 });

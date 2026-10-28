@@ -1,5 +1,5 @@
 /** Soul item classification, generated from the game's item table
- *  (tools/g4tx/export_souls_catalog.py). General souls (sol*) are the
+ *  General souls (sol*) are the
  *  stackable konkatsu/equipment materials stored in the soul bag;
  *  yo-kai tier items (<model>_white/red/gold) are konkatsu summon
  *  currency counted in the per-species soul ledger, never bag slots. */

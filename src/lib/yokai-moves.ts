@@ -1,7 +1,7 @@
 /** Per-yo-kai learnsets, generated from chara_param's seven move fields
- *  (tools/g4tx/export_yokai_moves.py).  Keys are save signatures matching
- *  PLAYABLE_YOKAI ids; values are skill signatures (SKILL_NAMES ids) the
- *  game lets that form use.  Missing key = unknown learnset.
+ *  Keys are save signatures matching
+ *  PLAYABLE_YOKAI ids; values are the skill signatures the game lets that
+ *  form use.  Missing key = unknown learnset.
  */
 export const YOKAI_MOVES: readonly (readonly [number, readonly number[]])[] = [
   [9253129, [3337546072, 1566518832, 2215189401, 4037189398, 1554380471, 3704948016]],

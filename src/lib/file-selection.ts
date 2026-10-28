@@ -130,10 +130,6 @@ function sameSlotBasename(kind: string, f: DroppedFile, slot: SlotName): boolean
   return parts.length >= 2 && base === "DATA.BIN" && normalize(parts[parts.length - 2]) === slot;
 }
 
-export function hasAnySlots(slots: SaveSlotFiles): boolean {
-  return Boolean(slots.USERDATA00 || slots.AUTOSAVE || slots.HEADERSAVE || slots.SYSTEM);
-}
-
 /**
  * Last-resort classification for bare `data.bin` files dropped without their
  * slot folder (a lone `data.bin` carries no slot name in its path). The save

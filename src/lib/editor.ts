@@ -56,9 +56,6 @@ export const NAME_SLOT_SIZE = 36;
 export interface PlayerInfo {
   money: number;
   names: string[];
-  mapId: number;
-  safeMapId: number;
-  position: [number, number, number];
   /** Total playtime in seconds (u32; confirmed against real saves). */
   playTimeSeconds: number;
   /** The four daily crank-a-kai counters inside m_globalByteFlag. */
@@ -69,9 +66,6 @@ export function readPlayer(parsed: ParsedSave): PlayerInfo {
   const v = view(parsed);
   const money = getRecordBytes(parsed, 0, KEY_MONEY);
   const namesBytes = getRecordBytes(parsed, 0, KEY_PLAYER_NAMES);
-  const map = getRecordBytes(parsed, 0, KEY_MAP_ID);
-  const safeMap = getRecordBytes(parsed, 0, KEY_SAFE_MAP_ID);
-  const pos = getRecordBytes(parsed, 0, KEY_POS);
   const playTime = getRecordBytes(parsed, 0, KEY_PLAY_TIME);
   const flags = getRecordBytes(parsed, 1, KEY_GLOBAL_BYTE_FLAG);
   const names: string[] = [];
@@ -83,13 +77,6 @@ export function readPlayer(parsed: ParsedSave): PlayerInfo {
   return {
     money: v.getUint32(money.byteOffset, true),
     names,
-    mapId: v.getUint32(map.byteOffset, true),
-    safeMapId: v.getUint32(safeMap.byteOffset, true),
-    position: [
-      v.getFloat32(pos.byteOffset, true),
-      v.getFloat32(pos.byteOffset + 4, true),
-      v.getFloat32(pos.byteOffset + 8, true),
-    ],
     playTimeSeconds: v.getUint32(playTime.byteOffset, true),
     crank: [flags[11], flags[12], flags[13], flags[14]],
   };
@@ -131,21 +118,6 @@ export function writeName(parsed: ParsedSave, slot: number, name: string): void 
   const start = bytes.byteOffset + slot * NAME_SLOT_SIZE;
   parsed.data.fill(0, start, start + NAME_SLOT_SIZE);
   parsed.data.set(encoded, start);
-}
-
-export function writeMapId(parsed: ParsedSave, mapId: number, alsoSafe: boolean): void {
-  const v = view(parsed);
-  v.setUint32(getRecordBytes(parsed, 0, KEY_MAP_ID).byteOffset, mapId >>> 0, true);
-  if (alsoSafe)
-    v.setUint32(getRecordBytes(parsed, 0, KEY_SAFE_MAP_ID).byteOffset, mapId >>> 0, true);
-}
-
-export function writePosition(parsed: ParsedSave, x: number, y: number, z: number): void {
-  const v = view(parsed);
-  const pos = getRecordBytes(parsed, 0, KEY_POS);
-  v.setFloat32(pos.byteOffset, x, true);
-  v.setFloat32(pos.byteOffset + 4, y, true);
-  v.setFloat32(pos.byteOffset + 8, z, true);
 }
 
 /** which = 0..3: manual tries, manual max, capital tries, capital max. */
@@ -434,8 +406,9 @@ export function setYoKaiSoul(
 /* ── soul ledger row creation (dual-write) ──────────────────────────────── */
 
 /** Tuple keys of the ledger's tagged records, crc32 of the native field
- *  names (decoded in REVERSE_ENGINEERING_LOG.md ★ souls). */
-const SOUL_KEYS = {
+ *  names; each is the crc32 of the native field name). */
+/** Exported for the change reporter's diff-preview labels. */
+export const SOUL_KEYS = {
   soulUnique: 0xd344531f,
   handle: 0x918020d9,
   item_id: 0x126f525e,

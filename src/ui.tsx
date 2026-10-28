@@ -28,7 +28,7 @@ export function artUrl(folder: string, name: string): string {
 
 /* ── Sprite-sheet backed icons ──────────────────────────────────────────────
  *  Each art folder ships as one packed sheet.webp + sheet.json manifest
- *  (tools/g4tx/build_sprite_sheets.py).  GameIcon resolves names against the
+ *  GameIcon resolves names against the
  *  manifest and draws the right region with CSS background positioning, so a
  *  whole folder costs a single request instead of one per icon. */
 

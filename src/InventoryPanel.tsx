@@ -4,7 +4,7 @@
  *
  *  Key items are deliberately absent: story keys/watches are not bag items —
  *  the save derives them from story-event flags, so they can neither be read
- *  as owned nor given via the acquisition log. See tools/lua/save_flag_notes.md. */
+ *  as owned nor granted reliably. */
 import { memo, useCallback, useState } from "react";
 import {
   Button,

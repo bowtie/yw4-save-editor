@@ -28,17 +28,15 @@ import {
   INVENTORIES,
   KEY_MONEY,
   KEY_PLAYER_NAMES,
-  KEY_POS,
   readPlayer,
   setEquipped,
   setQuantity,
   setYoKaiSoul,
+  SOUL_KEYS,
   writeCrank,
-  writeMapId,
   writeMoney,
   writeMoneySpent,
   writeName,
-  writePosition,
   type InventoryDef,
 } from "./editor";
 import { PARTY_SLOTS, YOKAI_SLOTS, writeSlot } from "./party";
@@ -50,6 +48,7 @@ const REAL_SAVES = [
   "tools/lua/saves/baseline/USERDATA00_data.bin",
   "tools/lua/saves/baseline/AUTOSAVE_data.bin",
   "tools/lua/saves/user/USERDATA00_data.bin",
+  "tools/lua/saves/user/USERDATA00_switch_data.bin",
 ].filter((p) => existsSync(p));
 
 const loadReal = (path: string): ParsedSave => parseSave(new Uint8Array(readFileSync(path)));
@@ -66,9 +65,6 @@ function writableRegions(parsed: ParsedSave): ByteRange[] {
   addRecord(0, KEY_MONEY);
   addRecord(0, 0x8127b2c2); // money spent
   addRecord(0, KEY_PLAYER_NAMES);
-  addRecord(0, 0x19560d9a); // map
-  addRecord(0, 0xd149530b); // safe map
-  addRecord(0, KEY_POS);
   addRecord(0, 0x3a40c52c); // play time
   addRecord(1, 0x2e5f582c); // global flags (crank counters)
   addRecord(1, 0xcf6dfcc9); // item acquisition log
@@ -164,8 +160,6 @@ describe("edit isolation (writes touch only their own region)", () => {
     writeMoneySpent(parsed, 12);
     writeName(parsed, 0, "Nate");
     writeName(parsed, 5, "Katie");
-    writeMapId(parsed, 0x36a5421e, true);
-    writePosition(parsed, 1.5, -2.25, 300.75);
     writeCrank(parsed, 0, 9);
     writeCrank(parsed, 3, 2);
 
@@ -254,7 +248,7 @@ describe("edit isolation (writes touch only their own region)", () => {
 
 function giveKeyItems(parsed: ParsedSave, count: number) {
   // Exercise the section-1 acquisition log too (the game rebuilds it on load,
-  // so this is a data-level edit, not key-item granting — see REVERSING.md §4).
+  // so this is a data-level edit, not key-item granting).
   for (const item of itemsOfCategory("key").slice(0, count)) {
     expect(giveKeyItem(parsed, item.crc)).toBe(true);
   }
@@ -293,5 +287,53 @@ describe("change report (labels match the edited fields)", () => {
     const parsed = skeleton();
     const original = parsed.data.slice();
     expect(describeChanges(parsed, original)).toEqual([]);
+  });
+
+  it("labels soul-ledger section records without confusing them with the soul bag", () => {
+    // Synthetic save: three bulk-anchor sections + a 0x1009 section whose
+    // data starts with the soulUnique key, i.e. where editor.ts's
+    // soulSectionBase scan finds the 500 x 80B ledger region.
+    const ledgerStride = 80;
+    const ledgerRows = 500;
+    const sec0Len = 16 + 12;
+    const sec1Len = sec0Len;
+    const sec2Len = sec1Len;
+    const sec9Len = 16 + ledgerStride * ledgerRows + 12;
+    const total = sec0Len + sec1Len + sec2Len + sec9Len;
+    const data = new Uint8Array(total);
+    const dv = new DataView(data.buffer);
+    const mkSection = (off: number, type: number, len: number) => {
+      dv.setUint16(off + 2, type, true);
+      dv.setUint32(off + 4, 16 + len, true);
+    };
+    mkSection(0, 0x1001, 0);
+    mkSection(sec0Len, 0x1002, 0);
+    mkSection(sec0Len + sec1Len, 0x1003, 0);
+    const sec9Off = sec0Len + sec1Len + sec2Len;
+    mkSection(sec9Off, 0x1009, ledgerStride * ledgerRows);
+    const ledgerStart = sec9Off + 16;
+    dv.setUint32(ledgerStart, SOUL_KEYS.soulUnique, true);
+    const parsed: ParsedSave = {
+      data,
+      sections: [
+        { offset: 0, type: 0x1001, idxSize: 16, ident: 1, records: [] },
+        { offset: sec0Len, type: 0x1002, idxSize: 16, ident: 1, records: [] },
+        { offset: sec0Len + sec1Len, type: 0x1003, idxSize: 16, ident: 1, records: [] },
+        {
+          offset: sec9Off,
+          type: 0x1009,
+          idxSize: 16 + ledgerStride * ledgerRows,
+          ident: 1,
+          records: [],
+        },
+      ],
+    };
+
+    const original = data.slice();
+    // Edit inside ledger row 3 (index 2) the way addYoKaiSoulRow would.
+    data[ledgerStart + 2 * ledgerStride + 40] = 0xab;
+    const labels = describeChanges(parsed, original).map((g) => g.label);
+    expect(labels).toContain("Soul ledger row 3 (section record)");
+    expect(labels.some((l) => l.includes("Soul bag"))).toBe(false);
   });
 });

@@ -5,9 +5,26 @@
  * before they write a save file.
  */
 import { diffByteRanges, type ByteRange } from "./byte-diff";
-import { bulkStart, INVENTORIES, SWITCH_SECTION2_START, YOKAI_SOULS } from "./editor";
+import { bulkStart, INVENTORIES, SOUL_KEYS, SWITCH_SECTION2_START, YOKAI_SOULS } from "./editor";
 import { PARTY_BASE, YOKAI_BASE, SLOT_STRIDE, PARTY_SLOTS, YOKAI_SLOTS } from "./party";
-import type { ParsedSave, Yw4Record } from "./save-format";
+import type { ParsedSave, Yw4Record, Yw4Section } from "./save-format";
+
+/** The 0x1009 soulUnique slot region, located the same way editor.ts's
+ *  `soulSectionBase` finds it: scan the section head for the key at 8-byte
+ *  stride. Null when this save has no ledger region. */
+function soulLedgerRegion(
+  parsed: ParsedSave,
+  sec: Yw4Section,
+): { start: number; end: number } | null {
+  const v = new DataView(parsed.data.buffer, parsed.data.byteOffset, parsed.data.byteLength);
+  const limit = Math.min(sec.offset + 0x2000, parsed.data.byteLength);
+  for (let o = sec.offset + 16; o + 4 <= limit; o += 8) {
+    if (v.getUint32(o, true) >>> 0 === SOUL_KEYS.soulUnique) {
+      return { start: o, end: o + YOKAI_SOULS.count * YOKAI_SOULS.stride };
+    }
+  }
+  return null;
+}
 
 /** Labels for the section-0/1 record keys this tool knows the meaning of. */
 const KEY_LABELS: Record<number, string> = {
@@ -98,6 +115,17 @@ function labelRange(parsed: ParsedSave, range: ByteRange): string {
         (r) => range.start >= r.offset && range.start < r.offset + 8 + r.len,
       );
       return rec ? `Section-2 record ${hex24(rec.key)}` : `Section 2 structure`;
+    }
+
+    if (sec.type === 0x1009) {
+      // The 0x1009 soulUnique slot region (see editor.ts's soul ledger):
+      // 500 x 80B records whose writes must not be confused with the soul
+      // BAG table they sit adjacent to in switch-space coordinates.
+      const ledger = soulLedgerRegion(parsed, sec);
+      if (ledger && range.start >= ledger.start && range.start < ledger.end) {
+        const row = Math.floor((range.start - ledger.start) / 80);
+        return `Soul ledger row ${row + 1} (section record)`;
+      }
     }
 
     // Sections 3+: the record scan is deliberately incomplete here (extended

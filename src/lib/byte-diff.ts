@@ -38,14 +38,3 @@ export function diffByteRanges(a: Uint8Array, b: Uint8Array): ByteDiff {
   }
   return { ranges, changed, sameLength: a.length === b.length };
 }
-
-/** True when every byte of `within` [start, end) is covered by `ranges`. */
-export function fullyCovered(ranges: ByteRange[], start: number, end: number): boolean {
-  let at = start;
-  for (const r of ranges) {
-    if (r.start > at) return false; // gap before this range
-    at = Math.max(at, r.end);
-    if (at >= end) return true;
-  }
-  return at >= end;
-}

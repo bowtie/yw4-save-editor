@@ -18,4 +18,9 @@ research/
 tools/
 
 # One-off data porting scripts, superseded by the checked-in src/lib tables.
-scripts/
+scripts/REVERSING.md
+
+REVERSING.md
+
+.tmp/
+bun.lock

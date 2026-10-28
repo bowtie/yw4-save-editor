@@ -1,5 +1,5 @@
-/** Soul item -> art path ("Folder/Name"), generated from item_config's
- *  ITEM_SOUL_INFO ids (tools/g4tx/export_soul_icons.py). Yo-kai tier souls
+/** Soul item -> art path ("Folder/Name"), built from item_config's
+ *  ITEM_SOUL_INFO ids. Yo-kai tier souls
  *  use the yo-kai's menu portrait (Yokai/<model>) like the game does;
  *  boss/bearer/god souls use their menu portraits too, tribe souls the tribe
  *  emblem (Tribes/race_<tribe>), petites the rank gems (Tribes/rank_<rank>). */

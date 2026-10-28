@@ -1,5 +1,5 @@
 /** Game-canonical item display order, generated from the game's item config
- *  (tools/g4tx/export_item_order.py).  Source: the explicit per-category
+ *  Source: the explicit per-category
  *  display index that closes every ITEM_*_INFO record in
  *  item_config_0.13.66.cfg.bin -- the key the bag's "Type" sort uses.
  *  CRCs match src/lib/item-data.ts entries. */

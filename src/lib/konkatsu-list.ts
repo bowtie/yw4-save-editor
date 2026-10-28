@@ -1,5 +1,5 @@
 /** Konkatsu match list, generated from the game's konkatsu_match_config
- *  (tools/g4tx/export_konkatsu_rows via cache-local). Canonical game order.
+ *  Canonical game order.
  *  Summon cost per species: soul wisps + money (+ per extra match),
  *  some also require a keepsake item. paramId joins to the soul ledger. */
 export interface KonkatsuEntry {
