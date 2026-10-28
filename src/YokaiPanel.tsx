@@ -130,52 +130,50 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
 
   return (
     <Tile>
+      <div className="flex min-h-10 items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+          Your yo-kai
+          <span className="ml-2 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-foreground">
+            {owned.length}
+          </span>
+        </p>
+        {adding ? (
+          <Button
+            variant="secondary"
+            onPress={() => {
+              setAdding(false);
+              // The roster search must not leak into the owned-list
+              // filter (one shared field serves both modes).
+              setSearch("");
+            }}
+          >
+            Back
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            onPress={() => {
+              setAdding(true);
+              setSearch("");
+              setSelected(null);
+            }}
+          >
+            <PlusIcon size={15} /> Add yo-kai
+          </Button>
+        )}
+      </div>
+      <div className="relative">
+        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
+        <Input
+          aria-label={adding ? "Search the yo-kai roster" : "Search your yo-kai"}
+          placeholder={adding ? "Search the roster…" : "Search your yo-kai…"}
+          className="h-9 w-full ps-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 @md:grid-cols-2 @md:grid-rows-[minmax(0,1fr)]">
-        <div className="flex min-h-0 flex-col gap-2.5">
-          <div className="flex items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-              Your yo-kai
-              <span className="ml-2 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-foreground">
-                {owned.length}
-              </span>
-            </p>
-            {adding ? (
-              <Button
-                className="ml-auto"
-                variant="secondary"
-                onPress={() => {
-                  setAdding(false);
-                  // The roster search must not leak into the owned-list
-                  // filter (one shared field serves both modes).
-                  setSearch("");
-                }}
-              >
-                Back
-              </Button>
-            ) : (
-              <Button
-                className="ml-auto"
-                variant="primary"
-                onPress={() => {
-                  setAdding(true);
-                  setSearch("");
-                  setSelected(null);
-                }}
-              >
-                <PlusIcon size={15} /> Add yo-kai
-              </Button>
-            )}
-          </div>
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
-            <Input
-              aria-label={adding ? "Search the yo-kai roster" : "Search your yo-kai"}
-              placeholder={adding ? "Search the roster…" : "Search your yo-kai…"}
-              className="h-9 w-full ps-8"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="flex min-h-0 flex-col">
           <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[18rem]">
             <div className="flex flex-col gap-0.5">
               {adding
