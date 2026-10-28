@@ -362,7 +362,7 @@ export default function Editor() {
                 ))}
               </Tabs>
 
-              <div className="sticky bottom-2 z-20 flex items-center justify-end gap-1 rounded-xl border border-border bg-surface/90 p-2 shadow-lg backdrop-blur">
+              <div className="sticky bottom-1 z-20 flex items-center justify-end gap-1 rounded-xl border border-border bg-surface/90 p-1.5 shadow-lg sm:bottom-2 sm:p-2 backdrop-blur">
                 <span
                   role="status"
                   className="mr-auto flex items-center gap-2 pl-1 text-xs text-muted"

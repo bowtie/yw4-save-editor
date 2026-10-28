@@ -2,7 +2,7 @@
  *  white / red / gold soul counters on the right. The per-yo-kai list
  *  shows every matchable species; ones the save has no ledger row for
  *  sit faded with a + that creates the row. */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, Input, ScrollShadow, toast } from "@heroui/react";
 import {
   addYoKaiSoulRow,
@@ -19,7 +19,16 @@ import {
 import { ITEMS, itemByCrc } from "./lib/item-data";
 import { ITEM_GROUPS } from "./lib/item-order";
 import { SOULS_CATALOG } from "./lib/souls-catalog";
-import { KONKATSU_LIST } from "./lib/konkatsu-list";
+import { nameForParam } from "./lib/characters";
+import { eraBaseName, eraDisplayName, eraNameCounts } from "./lib/era-names";
+import {
+  KONKATSU_LIST,
+  konkatsuSpeciesParamId,
+  konkatsuTradeMoney,
+  type KonkatsuEntry,
+} from "./lib/konkatsu-list";
+import { konkatsuCandidatesBySpecies, type KonkatsuCandidate } from "./lib/konkatsu-candidates";
+import { STAT_KEYS, STAT_LABELS, yokaiStatsAtLevel } from "./lib/yokai-stats";
 import { tribeInfo } from "./lib/tribes";
 import type { ParsedSave } from "./lib/save-format";
 import { GameIcon, RarityStars, RollStepper, removeWithUndo, SubTabs, Tile, ItemIcon } from "./ui";
@@ -51,6 +60,87 @@ const RANK_LETTERS = ["", "E", "D", "C", "B", "A", "S"] as const;
 
 const TIER_LABELS = { white: "White", red: "Red", gold: "Gold" } as const;
 
+function rawSummonName(entry: KonkatsuEntry): string {
+  const paramId = konkatsuSpeciesParamId(entry.paramId);
+  return (paramId === undefined ? null : nameForParam(paramId)) ?? entry.name;
+}
+
+const NAME_COUNTS = eraNameCounts(KONKATSU_LIST.map(rawSummonName));
+
+/** Display name: plain, with the era added only where another entry shares the name. */
+function summonName(entry: KonkatsuEntry): string {
+  const raw = rawSummonName(entry);
+  return eraDisplayName(raw, (NAME_COUNTS.get(eraBaseName(raw)) ?? 0) > 1);
+}
+
+/** The current board's rolled individuals as one compact grid: level and
+ *  price on the left, the six base stats across with the candidate's own
+ *  growth roll beneath each. Labels are shown once, in the header row. */
+/** Text color for a growth roll, by zone: low, mid, high. */
+function rollZone(roll: number): string {
+  if (roll >= 14) return "text-warning";
+  if (roll >= 8) return "text-success";
+  return "text-muted";
+}
+
+const CANDIDATE_COLS = "grid grid-cols-[4.75rem_repeat(6,minmax(0,1fr))] items-center gap-x-1";
+
+function CandidateList({
+  entry,
+  candidates,
+}: {
+  entry: KonkatsuEntry;
+  candidates: KonkatsuCandidate[];
+}) {
+  return (
+    <div className="text-xs tabular-nums">
+      <div className={`${CANDIDATE_COLS} border-b border-border pb-1 text-[10px] text-muted`}>
+        <span />
+        {STAT_KEYS.map((key) => (
+          <span key={key} className="text-center font-semibold uppercase tracking-wider">
+            {STAT_LABELS[key]}
+          </span>
+        ))}
+      </div>
+      {candidates.map((candidate) => {
+        const stats = yokaiStatsAtLevel(candidate.paramId, candidate.level);
+        return (
+          <div
+            key={candidate.slot}
+            className={`${CANDIDATE_COLS} border-b border-border/40 py-1 last:border-0`}
+          >
+            <div className="flex flex-col leading-tight">
+              <span className="flex items-baseline gap-1">
+                <span className="text-sm font-semibold">Lv {candidate.level}</span>
+                {candidate.isRare && (
+                  <span className="text-[9px] font-semibold uppercase text-warning">Rare</span>
+                )}
+              </span>
+              <span className="flex items-center gap-0.5 text-muted">
+                <GameIcon folder="Items" name="Y Coin" className="size-3 shrink-0 object-contain" />
+                {konkatsuTradeMoney(entry, candidate.level, candidate.isRare).toLocaleString(
+                  "en-US",
+                )}
+              </span>
+            </div>
+            {STAT_KEYS.map((key, i) => {
+              const roll = candidate.growth[i] ?? 0;
+              return (
+                <span key={key} className="flex flex-col items-center leading-tight">
+                  <span className="font-semibold">{stats ? stats[key] + roll : "–"}</span>
+                  <span className={`text-[11px] font-bold ${rollZone(roll)}`}>
+                    {roll > 0 ? `+${roll}` : " "}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Yo-kai souls: a searchable list on the left (icon, name, current
  *  white/red/gold counts at a glance) and the selected yo-kai's details on
  *  the right, the same list + detail layout as the Yo-kai tab. Species the
@@ -58,11 +148,13 @@ const TIER_LABELS = { white: "White", red: "Red", gold: "Gold" } as const;
 function LedgerView({
   parsed,
   soulsByParam,
+  candidatesBySpecies,
   onEdited,
   lead,
 }: {
   parsed: ParsedSave;
   soulsByParam: Map<number, YokaiSoulSlot>;
+  candidatesBySpecies: Map<number, KonkatsuCandidate[]>;
   onEdited: () => void;
   lead: ReactNode;
 }) {
@@ -85,14 +177,18 @@ function LedgerView({
   }, [selected]);
   const shown = KONKATSU_LIST.filter(
     (m) =>
-      m.name.toLowerCase().includes(search.toLowerCase()) &&
+      summonName(m).toLowerCase().includes(search.toLowerCase()) &&
       (!startedOnly || soulsByParam.has(m.paramId)),
   );
   const match = KONKATSU_LIST.find((m) => m.model === selected);
+  const displayName = match ? summonName(match) : "";
   const soul = match ? soulsByParam.get(match.paramId) : undefined;
   const tribe = match ? tribeInfo(yokaiTribe(match.paramId)) : undefined;
   const rank = match ? yokaiRank(match.paramId) : undefined;
   const keepsake = match?.item ? ITEM_BY_NAME.get(normName(match.item)) : undefined;
+  const speciesParamId = match ? konkatsuSpeciesParamId(match.paramId) : undefined;
+  const candidates =
+    speciesParamId === undefined ? [] : (candidatesBySpecies.get(speciesParamId) ?? []);
 
   return (
     <div className="@container flex min-h-0 flex-1 flex-col gap-3">
@@ -117,8 +213,8 @@ function LedgerView({
         />
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 pt-1 @md:grid-cols-2 @md:grid-rows-[minmax(0,1fr)]">
-        <div className="flex min-h-0 flex-col gap-2">
-          <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[26rem]">
+        <div className="flex min-h-0 flex-col gap-2 @md:relative @md:min-h-[26rem]">
+          <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 @md:absolute @md:inset-0 @md:max-h-none">
             <div className="flex flex-col gap-0.5">
               {shown.map((m) => {
                 const row = soulsByParam.get(m.paramId);
@@ -140,7 +236,7 @@ function LedgerView({
                       }`}
                     />
                     <span className={`min-w-0 flex-1 truncate text-sm ${row ? "" : "text-muted"}`}>
-                      {m.name}
+                      {summonName(m)}
                     </span>
                     {row ? (
                       <span className="hidden shrink-0 items-center gap-2 font-mono text-xs text-muted @md:flex">
@@ -169,7 +265,9 @@ function LedgerView({
 
         <div
           ref={detailRef}
-          className={`flex flex-col gap-5 @md:justify-center @md:border-l @md:border-border @md:pl-6 @md:overflow-y-auto ${!match ? "hidden @md:flex" : ""}`}
+          className={`flex flex-col gap-5 @md:border-l @md:border-border @md:pl-6 @md:overflow-y-auto ${
+            candidates.length > 0 ? "@md:justify-start" : "@md:justify-center"
+          } ${!match ? "hidden @md:flex" : ""}`}
         >
           {!match && (
             <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
@@ -190,8 +288,8 @@ function LedgerView({
                   className="size-14 shrink-0 rounded-xl bg-surface-secondary object-contain p-0.5"
                 />
                 <div className="min-w-0">
-                  <p className="truncate font-semibold">{match.name}</p>
-                  <p className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted">
+                  <p className="truncate font-semibold">{displayName}</p>
+                  <p className="mt-1 flex items-center gap-1.5 whitespace-nowrap text-xs text-muted">
                     {tribe && (
                       <GameIcon
                         folder="Tribes"
@@ -229,7 +327,7 @@ function LedgerView({
                         value={soul[which]}
                         step={1}
                         max={0xffff}
-                        ariaLabel={`${match.name} ${which} souls`}
+                        ariaLabel={`${displayName} ${which} souls`}
                         onCommit={(v) => {
                           setYoKaiSoul(parsed, soul.index, which, v);
                           onEdited();
@@ -240,7 +338,9 @@ function LedgerView({
                 </div>
               ) : (
                 <div className="flex flex-col items-start gap-2">
-                  <p className="text-xs text-muted">This save has no souls for {match.name} yet.</p>
+                  <p className="text-xs text-muted">
+                    This save has no souls for {displayName} yet.
+                  </p>
                   <Button
                     variant="primary"
                     onPress={() => {
@@ -252,10 +352,21 @@ function LedgerView({
                       }
                     }}
                   >
-                    <PlusIcon size={15} /> Start {match.name} souls
+                    <PlusIcon size={15} /> Start {displayName} souls
                   </Button>
                 </div>
               )}
+
+              <div className="flex flex-col gap-2 border-t border-border pt-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Soul summon candidates
+                </span>
+                {candidates.length > 0 ? (
+                  <CandidateList entry={match} candidates={candidates} />
+                ) : (
+                  <p className="text-xs text-muted">No current board candidates.</p>
+                )}
+              </div>
 
               <div className="flex flex-col gap-3 border-t border-border pt-4">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted">
@@ -270,13 +381,21 @@ function LedgerView({
                       {count} {TIER_LABELS[tier].toLowerCase()}
                     </span>
                   ))}
-                  <span className="flex items-center gap-2 tabular-nums">
+                  <span
+                    className="flex flex-wrap items-center gap-x-1.5 gap-y-1 tabular-nums"
+                    title="Base price plus the per-level surcharge. Rare candidates multiply the surcharge by 10."
+                  >
                     <GameIcon
                       folder="Items"
                       name="Y Coin"
                       className="size-5 shrink-0 object-contain"
                     />
                     {match.money.toLocaleString("en-US")}
+                    {match.moneyAdd > 0 && (
+                      <span className="text-muted">
+                        + {match.moneyAdd.toLocaleString("en-US")}/level
+                      </span>
+                    )}
                   </span>
                   {match.item && (
                     <span className="flex items-center gap-2">
@@ -433,6 +552,7 @@ export function SoulsPanel({ parsed }: { parsed: ParsedSave }) {
   const rerender = () => force((v) => v + 1);
   const souls = readYoKaiSouls(parsed);
   const soulsByParam = new Map(souls.map((s) => [s.paramId, s]));
+  const candidatesBySpecies = useMemo(() => konkatsuCandidatesBySpecies(parsed), [parsed]);
 
   const giveAll = () => {
     // All 34 general souls: sol* items are konkatsu equipment crafting
@@ -473,7 +593,13 @@ export function SoulsPanel({ parsed }: { parsed: ParsedSave }) {
       {view === "bag" ? (
         <SoulBagList parsed={parsed} onEdited={rerender} lead={lead} onGiveAll={giveAll} />
       ) : (
-        <LedgerView parsed={parsed} soulsByParam={soulsByParam} onEdited={rerender} lead={lead} />
+        <LedgerView
+          parsed={parsed}
+          soulsByParam={soulsByParam}
+          candidatesBySpecies={candidatesBySpecies}
+          onEdited={rerender}
+          lead={lead}
+        />
       )}
     </Tile>
   );

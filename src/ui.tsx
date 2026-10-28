@@ -17,6 +17,7 @@ import { SlotText } from "slot-text/react";
 import { play } from "cuelume";
 import { MinusIcon, PlusIcon } from "./icons";
 import type { ItemCategory } from "./lib/item-data";
+import type { StatKey } from "./lib/yokai-stats";
 
 /** Category → art folder inside the deployed `icons/` tree. */
 const CATEGORY_FOLDERS: Record<ItemCategory, string> = {
@@ -391,6 +392,8 @@ export function RollStepper({
   max,
   min = 0,
   onCommit,
+  onOverflow,
+  onUnderflow,
   className,
   ariaLabel,
   bare = false,
@@ -401,6 +404,11 @@ export function RollStepper({
   max: number;
   min?: number;
   onCommit: (v: number) => void;
+  /** Called instead of committing when + is pressed at max (e.g. EXP
+   *  rolling into the next level).  The button stays enabled. */
+  onOverflow?: () => void;
+  /** Called instead of committing when − is pressed at min. */
+  onUnderflow?: () => void;
   className?: string;
   ariaLabel: string;
   /** Transparent field chrome, for mounting the stepper over a progress bar. */
@@ -435,8 +443,27 @@ export function RollStepper({
     window.removeEventListener("pointercancel", endHold);
   };
 
+  /** A press at the boundary rolls over instead of clamping, when the parent
+   *  supplied a carry handler.  Returns true when it was consumed. */
+  const overflowAt = (dir: 1 | -1): boolean => {
+    if (dir > 0 && value >= max && onOverflow) {
+      setDirection("up");
+      play("tick");
+      onOverflow();
+      return true;
+    }
+    if (dir < 0 && value <= min && onUnderflow) {
+      setDirection("down");
+      play("tick");
+      onUnderflow();
+      return true;
+    }
+    return false;
+  };
+
   const beginHold = (dir: 1 | -1) => {
     endHold();
+    if (overflowAt(dir)) return;
     running.current = value;
     lastPointer.current = Date.now();
     commit(clamp(value + dir * step));
@@ -458,7 +485,7 @@ export function RollStepper({
     <button
       type="button"
       className={btn}
-      disabled={dir > 0 ? value >= max : value <= min}
+      disabled={dir > 0 ? value >= max && !onOverflow : value <= min && !onUnderflow}
       onPointerDown={() => {
         lastPointer.current = Date.now();
         beginHold(dir);
@@ -467,6 +494,7 @@ export function RollStepper({
       // has no pointerdown, so it still counts as a single step.
       onClick={() => {
         if (Date.now() - lastPointer.current < 600) return;
+        if (overflowAt(dir)) return;
         running.current = value;
         commit(clamp(value + dir * step));
       }}
@@ -541,13 +569,18 @@ export function RollStepper({
 
 /** EXP stepper drawn over a progress bar filled in the given accent; shared
  *  by the Player tab and Yo-kai so both edit level progress the same way. At the
- *  level cap the bar locks and shows MAX (the game stores EXP as 0 there). */
+ *  level cap the bar locks and shows MAX (the game stores EXP as 0 there).
+ *  Stepping past the last point of a level carries into the next level when
+ *  the caller supplies `onLevelUp`; stepping down from 0 EXP carries into the
+ *  previous one via `onLevelDown`. */
 export function ExpStepper({
   xp,
   toNext,
   maxed,
   accent = "#3e63dd",
   onCommit,
+  onLevelUp,
+  onLevelDown,
   disabled = false,
 }: {
   xp: number;
@@ -557,6 +590,10 @@ export function ExpStepper({
   maxed: boolean;
   accent?: string;
   onCommit: (v: number) => void;
+  /** Carry the stepper's + past the level's last point into the next level. */
+  onLevelUp?: () => void;
+  /** Carry the stepper's − at 0 EXP into the previous level. */
+  onLevelDown?: () => void;
   /** Locked entirely (e.g. a character not in the party yet): no bar. */
   disabled?: boolean;
 }) {
@@ -594,6 +631,8 @@ export function ExpStepper({
         max={toNext}
         ariaLabel="EXP"
         onCommit={onCommit}
+        onOverflow={maxed ? undefined : onLevelUp}
+        onUnderflow={onLevelDown}
       />
     </div>
   );
@@ -884,3 +923,13 @@ export function preloadArt(): void {
       : (cb) => window.setTimeout(cb, 1500);
   idle(() => preloadSheets(["Equipments"]));
 }
+
+/** One color per base stat for the detail-pane bars. */
+export const STAT_COLORS: Record<StatKey, string> = {
+  hp: "#ef647f",
+  str: "#f0994d",
+  spr: "#a98bf0",
+  def: "#5fa8e8",
+  res: "#55c496",
+  yp: "#e6c94f",
+};

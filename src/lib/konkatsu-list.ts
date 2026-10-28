@@ -1,14 +1,18 @@
 /** Konkatsu match list, generated from the game's konkatsu_match_config
  *  Canonical game order.
- *  Summon cost per species: soul wisps + money (+ per extra match),
- *  some also require a keepsake item. paramId joins to the soul ledger. */
+ *  Summon cost per species: soul wisps + money, some also require a
+ *  keepsake item. `paramId` is the soul-ledger BaseID, not a ParamID; use
+ *  KONKATSU_SPECIES_PARAM_ID to reach the species' stat row. */
 export interface KonkatsuEntry {
   name: string;
   model: string;
+  /** Soul-ledger BaseID (crc32 of the model). */
   paramId: number;
   souls: { tier: "white" | "red" | "gold"; count: number }[];
+  /** Base trade price: the price at level 1. */
   money: number;
-  perExtra: number;
+  /** Added per level above 1; rare candidates multiply this by 10. */
+  moneyAdd: number;
   item?: string;
 }
 
@@ -19,7 +23,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2923025309,
     souls: [{ tier: "gold", count: 1 }],
     money: 130,
-    perExtra: 0,
+    moneyAdd: 0,
   },
   {
     name: "Blazion",
@@ -31,7 +35,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 2000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Jinta",
@@ -43,7 +47,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 2000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Bancho",
@@ -55,7 +59,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 2000,
-    perExtra: 120,
+    moneyAdd: 120,
   },
   {
     name: "Hare-onna",
@@ -66,7 +70,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 2800,
-    perExtra: 100,
+    moneyAdd: 100,
     item: "Hare-onna's Cloud",
   },
   {
@@ -78,7 +82,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 2000,
-    perExtra: 100,
+    moneyAdd: 100,
     item: "Uribou's Fang",
   },
   {
@@ -87,7 +91,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 574823162,
     souls: [{ tier: "gold", count: 1 }],
     money: 100,
-    perExtra: 40,
+    moneyAdd: 40,
     item: "Whisper's Hair Wax",
   },
   {
@@ -99,7 +103,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 940,
-    perExtra: 80,
+    moneyAdd: 80,
     item: "Kyunshi's Hairclip",
   },
   {
@@ -111,7 +115,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1000,
-    perExtra: 80,
+    moneyAdd: 80,
     item: "Mirapo Fragment",
   },
   {
@@ -124,7 +128,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Semicolon",
@@ -136,7 +140,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Pakkun",
@@ -148,7 +152,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 890,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Hungramps",
@@ -160,7 +164,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Chief Tuna",
@@ -172,7 +176,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Charlie",
@@ -184,7 +188,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Blizzaria",
@@ -195,7 +199,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 6000,
-    perExtra: 200,
+    moneyAdd: 200,
     item: "Glacial Clip",
   },
   {
@@ -207,7 +211,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 5000,
-    perExtra: 260,
+    moneyAdd: 260,
     item: "Illuminoct's Shine",
   },
   {
@@ -216,7 +220,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1938864647,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Corptain",
@@ -227,7 +231,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 5000,
-    perExtra: 200,
+    moneyAdd: 200,
     item: "Corptain's Flag",
   },
   {
@@ -239,7 +243,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 5900,
-    perExtra: 200,
+    moneyAdd: 200,
     item: "Darkyubi's Comb",
   },
   {
@@ -248,7 +252,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1462847088,
     souls: [{ tier: "gold", count: 2 }],
     money: 5000,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Gargaros",
@@ -256,7 +260,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1408606991,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 160,
+    moneyAdd: 160,
   },
   {
     name: "Ogralus",
@@ -264,7 +268,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2511934171,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 160,
+    moneyAdd: 160,
   },
   {
     name: "Insomni",
@@ -275,7 +279,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 3000,
-    perExtra: 160,
+    moneyAdd: 160,
     item: "Insomni's Eyedrops",
   },
   {
@@ -287,7 +291,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 3000,
-    perExtra: 140,
+    moneyAdd: 140,
     item: "Burly's Wristband",
   },
   {
@@ -299,7 +303,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 3000,
-    perExtra: 140,
+    moneyAdd: 140,
     item: "Reuknight's Flag",
   },
   {
@@ -311,7 +315,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 3600,
-    perExtra: 140,
+    moneyAdd: 140,
     item: "Robonyan Oil",
   },
   {
@@ -324,7 +328,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 2500,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Punkupine",
@@ -335,7 +339,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 2000,
-    perExtra: 80,
+    moneyAdd: 80,
     item: "Punkupine's Needles",
   },
   {
@@ -344,7 +348,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1709400106,
     souls: [{ tier: "gold", count: 1 }],
     money: 100,
-    perExtra: 40,
+    moneyAdd: 40,
     item: "Whisper's Notebook",
   },
   {
@@ -356,7 +360,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1000,
-    perExtra: 60,
+    moneyAdd: 60,
     item: "Blazion's Flame",
   },
   {
@@ -368,7 +372,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 890,
-    perExtra: 60,
+    moneyAdd: 60,
     item: "Baku's Pillow",
   },
   {
@@ -381,7 +385,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 1000,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Tattletell",
@@ -393,7 +397,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 960,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Hidabat",
@@ -405,7 +409,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 210,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Mochismo",
@@ -417,7 +421,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Krystal Fox",
@@ -429,7 +433,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Mimikin",
@@ -441,7 +445,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Walkappa",
@@ -453,7 +457,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Cornfused",
@@ -465,7 +469,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Rhyth",
@@ -477,7 +481,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Sorrypus",
@@ -489,7 +493,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Hungramps",
@@ -501,7 +505,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Dimmy",
@@ -513,7 +517,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Roughraff",
@@ -525,7 +529,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 400,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Noko",
@@ -533,7 +537,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 4162104024,
     souls: [{ tier: "gold", count: 1 }],
     money: 1000,
-    perExtra: 100,
+    moneyAdd: 100,
     item: "Noko's Shed Skin",
   },
   {
@@ -546,7 +550,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 40,
+    moneyAdd: 40,
   },
   {
     name: "Noway",
@@ -558,7 +562,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Sandmeh",
@@ -570,7 +574,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Wiglin",
@@ -582,7 +586,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Steppa",
@@ -594,7 +598,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Gyuuki",
@@ -605,7 +609,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 5000,
-    perExtra: 200,
+    moneyAdd: 200,
     item: "Gyuuki's Eyeball",
   },
   {
@@ -618,7 +622,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 2000,
-    perExtra: 80,
+    moneyAdd: 80,
   },
   {
     name: "Zashiki-warashi",
@@ -629,7 +633,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1000,
-    perExtra: 100,
+    moneyAdd: 100,
     item: "Zashiki-warashi's Mirror",
   },
   {
@@ -642,7 +646,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 1000,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Narigama",
@@ -654,7 +658,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 500,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Blobgoblin",
@@ -666,7 +670,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 300,
-    perExtra: 60,
+    moneyAdd: 60,
   },
   {
     name: "Blizzaria",
@@ -674,7 +678,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1907668878,
     souls: [{ tier: "gold", count: 3 }],
     money: 6000,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Kyubi",
@@ -682,7 +686,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 907332958,
     souls: [{ tier: "gold", count: 3 }],
     money: 5900,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Venoct",
@@ -690,7 +694,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1069566544,
     souls: [{ tier: "gold", count: 3 }],
     money: 5000,
-    perExtra: 260,
+    moneyAdd: 260,
   },
   {
     name: "Little Charrmer",
@@ -698,7 +702,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1138815430,
     souls: [{ tier: "gold", count: 3 }],
     money: 5300,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Shogunyan",
@@ -706,7 +710,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 4055903702,
     souls: [{ tier: "gold", count: 3 }],
     money: 6400,
-    perExtra: 280,
+    moneyAdd: 280,
   },
   {
     name: "Arachnus",
@@ -714,7 +718,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1324389303,
     souls: [{ tier: "gold", count: 3 }],
     money: 5900,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Toadal Dude",
@@ -722,7 +726,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 3362054425,
     souls: [{ tier: "gold", count: 3 }],
     money: 5000,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Silver Lining",
@@ -730,7 +734,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 237523149,
     souls: [{ tier: "gold", count: 3 }],
     money: 5000,
-    perExtra: 300,
+    moneyAdd: 300,
   },
   {
     name: "Deadcool",
@@ -738,7 +742,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 3892443153,
     souls: [{ tier: "gold", count: 3 }],
     money: 5000,
-    perExtra: 240,
+    moneyAdd: 240,
   },
   {
     name: "Gilgaros",
@@ -746,7 +750,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 606442014,
     souls: [{ tier: "gold", count: 3 }],
     money: 5860,
-    perExtra: 160,
+    moneyAdd: 160,
   },
   {
     name: "Orcanos",
@@ -754,7 +758,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2832808811,
     souls: [{ tier: "gold", count: 3 }],
     money: 5960,
-    perExtra: 160,
+    moneyAdd: 160,
   },
   {
     name: "Azure Dragon",
@@ -762,7 +766,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 192210158,
     souls: [{ tier: "gold", count: 2 }],
     money: 3000,
-    perExtra: 160,
+    moneyAdd: 160,
   },
   {
     name: "Shirokuma",
@@ -770,7 +774,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 3517265118,
     souls: [{ tier: "gold", count: 1 }],
     money: 2460,
-    perExtra: 80,
+    moneyAdd: 80,
     item: "Shirokuma's Milk Bottle",
   },
   {
@@ -779,7 +783,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2673322258,
     souls: [{ tier: "gold", count: 2 }],
     money: 6000,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Damona",
@@ -787,7 +791,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2715244771,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Goldenyan",
@@ -795,7 +799,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 977672949,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Komashura",
@@ -803,7 +807,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 4017701307,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Shadow Venoct",
@@ -811,7 +815,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 4271269604,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Sighborg Y",
@@ -819,7 +823,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 3524880395,
     souls: [{ tier: "gold", count: 1 }],
     money: 2000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Kiborikkuma",
@@ -830,7 +834,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 4900,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Spoilerina",
@@ -841,7 +845,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 4800,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Cruncha",
@@ -852,7 +856,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 6400,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Hornaplenty",
@@ -863,7 +867,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 6400,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Beetall",
@@ -874,7 +878,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 3200,
-    perExtra: 70,
+    moneyAdd: 70,
   },
   {
     name: "Rhinormous",
@@ -885,7 +889,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 3200,
-    perExtra: 70,
+    moneyAdd: 70,
   },
   {
     name: "Kappa",
@@ -896,7 +900,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 2800,
-    perExtra: 70,
+    moneyAdd: 70,
   },
   {
     name: "Hamham",
@@ -907,7 +911,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1860,
-    perExtra: 40,
+    moneyAdd: 40,
   },
   {
     name: "Lava Lord",
@@ -918,7 +922,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 2390,
-    perExtra: 40,
+    moneyAdd: 40,
   },
   {
     name: "Choky",
@@ -929,7 +933,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 2200,
-    perExtra: 30,
+    moneyAdd: 30,
   },
   {
     name: "Happierre",
@@ -940,7 +944,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1130,
-    perExtra: 30,
+    moneyAdd: 30,
   },
   {
     name: "Swelton",
@@ -951,7 +955,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1290,
-    perExtra: 30,
+    moneyAdd: 30,
   },
   {
     name: "Mad Mountain",
@@ -962,7 +966,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1240,
-    perExtra: 30,
+    moneyAdd: 30,
   },
   {
     name: "Kawauso",
@@ -973,7 +977,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1110,
-    perExtra: 30,
+    moneyAdd: 30,
   },
   {
     name: "Dismarelda",
@@ -984,7 +988,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 880,
-    perExtra: 20,
+    moneyAdd: 20,
   },
   {
     name: "Nosirs",
@@ -995,7 +999,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 530,
-    perExtra: 20,
+    moneyAdd: 20,
   },
   {
     name: "McKraken",
@@ -1003,7 +1007,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2781436186,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Damona",
@@ -1011,7 +1015,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1756333775,
     souls: [{ tier: "gold", count: 3 }],
     money: 5000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Frostail",
@@ -1022,7 +1026,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 5900,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Shadow Venoct",
@@ -1030,7 +1034,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 651918097,
     souls: [{ tier: "gold", count: 1 }],
     money: 5000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Shogunyan",
@@ -1038,7 +1042,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 44065760,
     souls: [{ tier: "gold", count: 3 }],
     money: 6400,
-    perExtra: 280,
+    moneyAdd: 280,
   },
   {
     name: "Arachnus",
@@ -1046,7 +1050,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1157634352,
     souls: [{ tier: "gold", count: 3 }],
     money: 5900,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Toadal Dude",
@@ -1054,7 +1058,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2961227760,
     souls: [{ tier: "gold", count: 3 }],
     money: 5000,
-    perExtra: 200,
+    moneyAdd: 200,
   },
   {
     name: "Komashura",
@@ -1062,7 +1066,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 561587773,
     souls: [{ tier: "gold", count: 3 }],
     money: 5000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Awevil",
@@ -1070,7 +1074,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2242658322,
     souls: [{ tier: "gold", count: 3 }],
     money: 4830,
-    perExtra: 160,
+    moneyAdd: 160,
   },
   {
     name: "Demuncher",
@@ -1081,7 +1085,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 4910,
-    perExtra: 120,
+    moneyAdd: 120,
     item: "Demuncher Beads",
   },
   {
@@ -1093,7 +1097,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 5290,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Tidynator",
@@ -1101,7 +1105,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2300867391,
     souls: [{ tier: "gold", count: 2 }],
     money: 3600,
-    perExtra: 140,
+    moneyAdd: 140,
   },
   {
     name: "Papa Bolt",
@@ -1112,7 +1116,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 3100,
-    perExtra: 70,
+    moneyAdd: 70,
   },
   {
     name: "Saya",
@@ -1120,7 +1124,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 4186766212,
     souls: [{ tier: "gold", count: 2 }],
     money: 3800,
-    perExtra: 70,
+    moneyAdd: 70,
   },
   {
     name: "Dameboy",
@@ -1131,7 +1135,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 2820,
-    perExtra: 70,
+    moneyAdd: 70,
     item: "Dameboy's Gloves",
   },
   {
@@ -1143,7 +1147,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 3140,
-    perExtra: 70,
+    moneyAdd: 70,
     item: "GHz Orb",
   },
   {
@@ -1155,7 +1159,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 3440,
-    perExtra: 70,
+    moneyAdd: 70,
   },
   {
     name: "Smogmella",
@@ -1166,7 +1170,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 3360,
-    perExtra: 70,
+    moneyAdd: 70,
     item: "Smogmella's Smoke",
   },
   {
@@ -1175,7 +1179,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 3851942514,
     souls: [{ tier: "gold", count: 2 }],
     money: 2990,
-    perExtra: 70,
+    moneyAdd: 70,
   },
   {
     name: "Kakurenbo",
@@ -1183,7 +1187,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 2388445845,
     souls: [{ tier: "gold", count: 2 }],
     money: 1960,
-    perExtra: 40,
+    moneyAdd: 40,
   },
   {
     name: "Itashikatanashi",
@@ -1194,7 +1198,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 1740,
-    perExtra: 40,
+    moneyAdd: 40,
     item: "Itashikatanashi's Sash",
   },
   {
@@ -1203,7 +1207,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 3393252496,
     souls: [{ tier: "gold", count: 1 }],
     money: 3000,
-    perExtra: 100,
+    moneyAdd: 100,
   },
   {
     name: "Doyapon",
@@ -1211,7 +1215,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1476733320,
     souls: [{ tier: "gold", count: 2 }],
     money: 1800,
-    perExtra: 40,
+    moneyAdd: 40,
   },
   {
     name: "B3-NK1",
@@ -1223,7 +1227,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 1900,
-    perExtra: 40,
+    moneyAdd: 40,
   },
   {
     name: "Drizzelda",
@@ -1235,7 +1239,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 1400,
-    perExtra: 50,
+    moneyAdd: 50,
   },
   {
     name: "Ray O'Light",
@@ -1247,7 +1251,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 1400,
-    perExtra: 50,
+    moneyAdd: 50,
   },
   {
     name: "Becchan",
@@ -1259,7 +1263,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 1060,
-    perExtra: 30,
+    moneyAdd: 30,
   },
   {
     name: "Shmoopie",
@@ -1270,7 +1274,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 1 },
     ],
     money: 960,
-    perExtra: 30,
+    moneyAdd: 30,
     item: "Swooning Heart",
   },
   {
@@ -1283,7 +1287,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 890,
-    perExtra: 30,
+    moneyAdd: 30,
   },
   {
     name: "Count Zapaway",
@@ -1295,7 +1299,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 940,
-    perExtra: 30,
+    moneyAdd: 30,
   },
   {
     name: "Rocky Badboya",
@@ -1307,7 +1311,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 3 },
     ],
     money: 1970,
-    perExtra: 20,
+    moneyAdd: 20,
   },
   {
     name: "Daniel",
@@ -1319,7 +1323,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 520,
-    perExtra: 20,
+    moneyAdd: 20,
   },
   {
     name: "Slicenrice",
@@ -1331,7 +1335,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 360,
-    perExtra: 20,
+    moneyAdd: 20,
   },
   {
     name: "Molar Petite",
@@ -1343,7 +1347,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 820,
-    perExtra: 20,
+    moneyAdd: 20,
   },
   {
     name: "Legsit",
@@ -1355,7 +1359,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 590,
-    perExtra: 20,
+    moneyAdd: 20,
   },
   {
     name: "Snottle",
@@ -1367,7 +1371,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 870,
-    perExtra: 20,
+    moneyAdd: 20,
   },
   {
     name: "Kezurin",
@@ -1379,7 +1383,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 320,
-    perExtra: 10,
+    moneyAdd: 10,
   },
   {
     name: "Wazzat",
@@ -1391,7 +1395,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 340,
-    perExtra: 10,
+    moneyAdd: 10,
   },
   {
     name: "Azukiarai",
@@ -1403,7 +1407,7 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
       { tier: "gold", count: 2 },
     ],
     money: 240,
-    perExtra: 10,
+    moneyAdd: 10,
   },
   {
     name: "Yamamba",
@@ -1411,6 +1415,160 @@ export const KONKATSU_LIST: KonkatsuEntry[] = [
     paramId: 1269625312,
     souls: [{ tier: "gold", count: 3 }],
     money: 4880,
-    perExtra: 100,
+    moneyAdd: 100,
   },
 ];
+
+/** Canonical ParamID of every summonable species, keyed by its KONKATSU_LIST
+ *  `paramId` (the soul-ledger BaseID). The match board stores candidates by
+ *  ParamID, so this bridges the ledger row to the rolled candidates.
+ *  Generated from konkatsu_match_config's charaID/charaParamID pair. */
+export const KONKATSU_SPECIES_PARAM_ID: Record<number, number> = {
+  2923025309: 2981463356, // Kantaro (y01530000)
+  1289002558: 1398327455, // Blazion (y01040000)
+  1913187163: 1837415930, // Jinta (y01100000)
+  1332265707: 1357157450, // Bancho (y01110000)
+  3007111973: 2897261956, // Hare-onna (y01230000)
+  1701118008: 2062112409, // Uribou (y01430000)
+  574823162: 1036995675, // Whisper (y00010000)
+  4103903733: 3943747412, // Kyunshi (y01200000)
+  313864489: 221865864, // Mirapo (y01480000)
+  2430969592: 2406084697, // Hot Pot (y01470000)
+  900239755: 707053354, // Semicolon (y01130000)
+  2273856923: 2550405946, // Pakkun (y01140000)
+  1115201690: 1576334907, // Hungramps (y01180000)
+  2019569792: 1743545889, // Chief Tuna (y01330000)
+  3928356248: 4121535289, // Charlie (y01450000)
+  3100404130: 2806005507, // Blizzaria (y02080000)
+  3585815847: 3392627590, // Illuminoct (y02160010)
+  1938864647: 1813834918, // Snartle (y02180000)
+  3961518568: 4086542153, // Corptain (y02280010)
+  658713165: 953122028, // Darkyubi (y02380010)
+  1462847088: 1220350161, // Wobblewok (y02560000)
+  1408606991: 1283061166, // Gargaros (y02690000)
+  2511934171: 2318746746, // Ogralus (y02700000)
+  983367283: 621848786, // Insomni (y02070000)
+  2332065462: 2492213271, // Sgt. Burly (y02150000)
+  4110731433: 3934821896, // Reuknight (y02280000)
+  593308596: 1020362005, // Robonyan (y02480000)
+  134010819: 410026338, // Frostina (y02060000)
+  3972341102: 4081667023, // Punkupine (y02670000)
+  1709400106: 2054108811, // Whisper (y00020000)
+  3059767046: 2850816423, // Blazion (y02140000)
+  3335053245: 3645147420, // Baku (y02350000)
+  3870148277: 4179726356, // Mirapo (y02440000)
+  3474741427: 3499101714, // Tattletell (y02030000)
+  1079815443: 1607531442, // Hidabat (y02050000)
+  71338774: 466410935, // Mochismo (y02130000)
+  1233660445: 1443134652, // Krystal Fox (y02330000)
+  1418533541: 1258376196, // Mimikin (y02430000)
+  507314692: 28398757, // Walkappa (y02490000)
+  3843136096: 4204645569, // Cornfused (y02510000)
+  2516930062: 2307463343, // Rhyth (y02650000)
+  1855294143: 1897520158, // Sorrypus (y02680000)
+  3051097043: 2857393522, // Hungramps (y02010000)
+  4068241667: 3991938978, // Dimmy (y02020000)
+  958440102: 648868871, // Roughraff (y02120000)
+  4162104024: 3885563001, // Noko (y02210000)
+  860387709: 751054812, // Manjimutt (y02310000)
+  321740917: 211891924, // Noway (y02400000)
+  1777152789: 1986094516, // Sandmeh (y02420000)
+  424000430: 113896719, // Wiglin (y02630000)
+  2875549630: 3035181343, // Steppa (y02640000)
+  1471620706: 1211855043, // Gyuuki (y03170000)
+  601574310: 1012342023, // Yamanba (y03090000)
+  515596822: 20395191, // Zashiki-warashi (y03080000)
+  269966514: 261818899, // Kappa (y03140000)
+  3588731315: 3396069138, // Narigama (y03180000)
+  1661176028: 2089803389, // Blobgoblin (y03200000)
+  1907668878: 1849221423, // Blizzaria (y01050000)
+  907332958: 697867263, // Kyubi (y01060000)
+  1069566544: 541859057, // Venoct (y01300000)
+  1138815430: 1550624615, // Little Charrmer (y02100000)
+  4055903702: 3997989751, // Shogunyan (y02170000)
+  1324389303: 1367131414, // Arachnus (y02190000)
+  3362054425: 3622352824, // Toadal Dude (y02290000)
+  237523149: 295962220, // Silver Lining (y02300000)
+  3892443153: 4153257648, // Deadcool (y02580000)
+  606442014: 1000981695, // Gilgaros (y02620000)
+  2832808811: 3075829194, // Orcanos (y02710000)
+  192210158: 351842895, // Azure Dragon (y01070000)
+  3517265118: 3458818687, // Shirokuma (y02660000)
+  2673322258: 2161901491, // Tamamo (y03120000)
+  2715244771: 3193638466, // Damona (y02080010)
+  977672949: 634014804, // Goldenyan (y02480010)
+  4017701307: 4042594074, // Komashura (y02720000)
+  4271269604: 3776589893, // Sh. Venoct (y02160020)
+  3524880395: 3449110186, // Sighborg Y (y02730000)
+  2472147501: 2362813580, // Kiborikkuma (y01520000)
+  1783721920: 1977432417, // Spoilerina (y02570000)
+  2032305498: 1722733563, // Cruncha (y02740010)
+  1145220330: 1540291147, // Hornaplenty (y02750010)
+  1614394395: 2142626490, // Beetall (y02740000)
+  1566154155: 1121307402, // Rhinormous (y02750000)
+  664391371: 940939370, // Kappa (y02770000)
+  852502561: 761036416, // Hamham (y01390000)
+  65197626: 477003931, // Lava Lord (y02760010)
+  3303854644: 3680535701, // Chokki (y01280000)
+  227806232: 303585977, // Happierre (y02250000)
+  2729566384: 3174938129, // Swelton (y02520000)
+  452585339: 91599322, // Mad Mountain (y02760000)
+  762803458: 855319459, // Kawauso (y03150000)
+  2101118115: 1655755266, // Dismarelda (y02040000)
+  3631330256: 3355305329, // Nosirs (y02500000)
+  2781436186: 3125088187, // McKraken (y02780000)
+  1756333775: 1998835822, // Damona (y01050010)
+  789576735: 813935294, // Frostail (y01060010)
+  651918097: 962014640, // Sh. Venoct (y01300010)
+  44065760: 489436481, // Shogunyan (y01310000)
+  1157634352: 1519144849, // Arachnus (y01320000)
+  2961227760: 2936858961, // Toadal Dude (y01360000)
+  561587773: 1056272540, // Komashura (y01550000)
+  2242658322: 2585794227, // Awevil (y02090000)
+  3312747368: 3673740745, // Demuncher (y02200000)
+  1502579134: 1174658847, // Poofessor (y02810000)
+  2300867391: 2527602078, // Robonyan OO (y01080000)
+  3024378511: 2882014254, // Papa Bolt (y01090000)
+  4186766212: 3858804005, // Saya (y01290000)
+  1382937171: 1306633458, // Dameboy (y01610000)
+  2002018168: 1758988761, // Signiton (y02270000)
+  3154676957: 2743392892, // Lie-in Heart (y02370000)
+  277953696: 253585921, // Smogmella (y02550000)
+  3851942514: 4196117715, // Kukuri-hime (y03100000)
+  2388445845: 2446367796, // Kakurenbo (y01220000)
+  1186743781: 1496322884, // Itashikatanashi (y01270000)
+  3393252496: 3586964017, // Noko (y01340000)
+  1476733320: 1200193321, // Doyapon (y01420000)
+  2702031973: 3196185284, // B3-NK1 (y02470000)
+  2561241258: 2267358731, // Drizzelda (y02790000)
+  1693425678: 2070148783, // Ray O'Light (y02800000)
+  2592963875: 2231446402, // Becchan (y01640000)
+  2171118957: 2665804748, // Shmoopie (y02360000)
+  3687706373: 3292641700, // Nekidspeed (y02450000)
+  2624427477: 2212610932, // Count Zapaway (y02460000)
+  2681325824: 2153619361, // Rocky Badboya (y02530000)
+  1014765189: 602947620, // Daniel (y01250000)
+  821306792: 796422921, // Slicenrice (y02240000)
+  4222154253: 3827605676, // Molar Petite (y02340000)
+  506458990: 27502031, // Legsit (y02820000)
+  592435934: 1019448447, // Snottle (y02830000)
+  2911211336: 2986990057, // Kezurin (y01460000)
+  776817093: 834740068, // Wazzat (y02410000)
+  3901200387: 4144746146, // Azukiarai (y03190000)
+  1269625312: 1994851750, // Yamamba (y03030000_friend)
+};
+
+/** Canonical ParamID for a KONKATSU_LIST BaseID. */
+export function konkatsuSpeciesParamId(baseId: number): number | undefined {
+  return KONKATSU_SPECIES_PARAM_ID[baseId >>> 0];
+}
+
+/** Rare candidates multiply the level surcharge by this rate
+ *  (option_config moneyRate_RareChara). */
+export const RARE_MONEY_RATE = 10;
+
+/** One candidate's trade price, mirroring GetTradeMoney in
+ *  konkatsu_match_inc.lua: base money plus moneyAdd for every level above 1. */
+export function konkatsuTradeMoney(entry: KonkatsuEntry, level: number, isRare: boolean): number {
+  return entry.money + entry.moneyAdd * (level - 1) * (isRare ? RARE_MONEY_RATE : 1);
+}

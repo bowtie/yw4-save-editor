@@ -8,11 +8,19 @@ import { Button, Input, ScrollShadow, toast } from "@heroui/react";
 import { clearYoKaiSlot, readYoKaiSlots, writeSlot, type PartySlot } from "./lib/party";
 import { yokaiNameFor } from "./lib/yokai";
 import { nameForParam } from "./lib/characters";
+import { rosterDisplayName } from "./lib/era-names";
 import { PLAYABLE_YOKAI, type PlayableYokai } from "./lib/yokai-playable";
 import { yokaiExpRate } from "./lib/yokai-curve";
 import { yokaiTribe } from "./lib/yokai-base";
+import {
+  STAT_KEYS,
+  STAT_LABELS,
+  isFriendSummon,
+  playerStatScaleAtLevel,
+  yokaiStatsAtLevel,
+} from "./lib/yokai-stats";
 import { modelParamId, tribeInfo } from "./lib/tribes";
-import { EXP_RATES, LEVEL_CAP, expToNext } from "./lib/exp-curve";
+import { EXP_RATES, LEVEL_CAP, carryLevelStep, expToNext } from "./lib/exp-curve";
 import { YOKAI_MOVES } from "./lib/yokai-moves";
 import { isSummonable } from "./lib/yokai-summon";
 import type { ParsedSave } from "./lib/save-format";
@@ -26,6 +34,7 @@ import {
   Tile,
   SubTabs,
   ConfirmDialog,
+  STAT_COLORS,
 } from "./ui";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
 
@@ -67,6 +76,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
 
   /** Display name: roster name first, official ParamID name, wiki fallback. */
   const speciesFor = (s: PartySlot): string =>
+    rosterDisplayName(s.speciesId) ??
     rosterById.get(s.speciesId)?.name ??
     nameForParam(s.speciesId) ??
     yokaiNameFor(s.speciesId) ??
@@ -80,12 +90,20 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
     slot && iconFor(slot) ? tribeInfo(yokaiTribe(modelParamId(iconFor(slot)))) : undefined;
   /** This species' growth rate (per-species ExperienceCurve class). */
   const expRate = slot ? yokaiExpRate(slot.speciesId, EXP_RATES) : EXP_RATES[0];
+  /** Species base stats at the slot's current level. Gear, training and
+   *  temporary effects are not part of CHARA_PARAM_INFO. */
+  const baseStats = slot ? yokaiStatsAtLevel(slot.speciesId, slot.level) : undefined;
+  /** Best playable value of each stat at that level, used as the bar full mark. */
+  const statScale = slot && baseStats ? playerStatScaleAtLevel(slot.level) : undefined;
+  const friendSummon = slot ? isFriendSummon(slot.speciesId) : false;
 
   /** The add picker offers only the 180 collectible yo-kai — boss and
    *  special dictionary entries are battle-only (no learnsets, not
    *  befriendable), so they are not addable. */
   const playable = PLAYABLE_YOKAI.filter(
-    (y) => y.section === "yokai" && y.name.toLowerCase().includes(search.toLowerCase()),
+    (y) =>
+      y.section === "yokai" &&
+      rosterDisplayName(y.id)!.toLowerCase().includes(search.toLowerCase()),
   );
   const matching = owned.filter((s) => speciesFor(s).toLowerCase().includes(search.toLowerCase()));
 
@@ -105,7 +123,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
     const copies = ownedCount.get(y.id) ?? 0;
     // Only summonable yo-kai can exist more than once; the rest are unique.
     if (copies > 0 && !isSummonable(y.icon)) {
-      toast.warning(`${y.name} is unique and already in your collection`, {
+      toast.warning(`${rosterDisplayName(y.id)} is unique and already in your collection`, {
         description: "Only summonable yo-kai can have more than one copy.",
       });
       return;
@@ -117,7 +135,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
     writeSlot(parsed, "yokai", index, { speciesId: y.id, level: 1, skills: moves });
     // Stay in the roster picker so several yo-kai can be added in a row.
     rerender();
-    toast.success(`Added ${y.name} (slot ${index + 1}).`, {
+    toast.success(`Added ${rosterDisplayName(y.id)} (slot ${index + 1}).`, {
       description: "Press Back to edit it, or keep adding.",
     });
   };
@@ -140,6 +158,14 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
       rerender,
     );
     setSelected(null);
+  };
+
+  /** Carry an EXP step past the level boundary: up starts the next level at
+   *  0 EXP, down starts the previous one at its requirement. */
+  const stepLevelFromExp = (delta: 1 | -1) => {
+    if (!slot) return;
+    const target = carryLevelStep(slot.level, delta, expRate);
+    if (target) patch(target);
   };
 
   return (
@@ -193,8 +219,8 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
         />
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 @md:grid-cols-2 @md:grid-rows-[minmax(0,1fr)]">
-        <div className="flex min-h-0 flex-col">
-          <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[18rem]">
+        <div className="flex min-h-0 flex-col @md:relative @md:min-h-[18rem]">
+          <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 @md:absolute @md:inset-0 @md:max-h-none">
             <div className="flex flex-col gap-0.5">
               {adding
                 ? playable.map((y) => {
@@ -216,7 +242,9 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                           name={y.icon}
                           className="size-8 shrink-0 rounded-lg bg-surface-secondary object-contain p-0.5"
                         />
-                        <span className="min-w-0 flex-1 truncate text-sm">{y.name}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                          {rosterDisplayName(y.id)}
+                        </span>
                         {copies > 0 ? (
                           <span className="shrink-0 rounded-full bg-accent-soft px-1.5 py-0.5 text-xs font-semibold text-accent">
                             {locked ? "Owned" : `Owned ×${copies}`}
@@ -337,9 +365,66 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                     maxed={slot.level >= LEVEL_CAP}
                     accent={tribe?.color}
                     onCommit={(v) => patch({ xp: v })}
+                    onLevelUp={slot.level < LEVEL_CAP ? () => stepLevelFromExp(1) : undefined}
+                    onLevelDown={slot.level > 1 ? () => stepLevelFromExp(-1) : undefined}
                   />
                 </div>
               </div>
+
+              {baseStats && statScale && (
+                <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface-secondary/40 p-2.5">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                      Base stats
+                    </span>
+                    {friendSummon && (
+                      <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                        Ally summon
+                      </span>
+                    )}
+                    <span className="ml-auto text-xs text-muted/70">Lv {slot.level}</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {STAT_KEYS.map((key) => {
+                      const value = baseStats[key];
+                      const best = Math.max(1, statScale[key]);
+                      const pct = Math.min(100, (value / best) * 100);
+                      return (
+                        <div
+                          key={key}
+                          className="flex items-center gap-2"
+                          title={`${STAT_LABELS[key]} ${value} · best playable ${best} at Lv ${slot.level}`}
+                        >
+                          <span className="w-8 shrink-0 text-xs font-semibold uppercase tracking-wider text-muted">
+                            {STAT_LABELS[key]}
+                          </span>
+                          <div
+                            className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-foreground/10"
+                            role="meter"
+                            aria-label={`${STAT_LABELS[key]} base stat`}
+                            aria-valuemin={0}
+                            aria-valuemax={best}
+                            aria-valuenow={value}
+                          >
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${pct}%`,
+                                background: `linear-gradient(90deg, ${STAT_COLORS[key]}80, ${STAT_COLORS[key]})`,
+                                boxShadow: `0 0 6px ${STAT_COLORS[key]}55`,
+                                transition: "width 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+                              }}
+                            />
+                          </div>
+                          <span className="w-9 shrink-0 text-right font-mono text-xs tabular-nums">
+                            {value}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

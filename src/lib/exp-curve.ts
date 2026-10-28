@@ -26,3 +26,16 @@ function threshold(level: number, rate: number): number {
 export function expToNext(level: number, rate: number = HUMAN_EXP_RATE): number {
   return threshold(level + 1, rate) - threshold(level, rate);
 }
+
+/** The level/EXP pair reached by carrying one step across a level boundary:
+ *  levelling up starts the new level at 0 EXP, levelling down starts the lower
+ *  level at its requirement.  Returns null at the cap or the first level. */
+export function carryLevelStep(
+  level: number,
+  delta: 1 | -1,
+  rate: number = HUMAN_EXP_RATE,
+): { level: number; xp: number } | null {
+  const next = Math.max(1, Math.min(LEVEL_CAP, level + delta));
+  if (next === level) return null;
+  return { level: next, xp: delta > 0 ? 0 : expToNext(next, rate) };
+}

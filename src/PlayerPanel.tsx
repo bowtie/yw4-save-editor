@@ -13,7 +13,7 @@ import {
   writeName,
 } from "./lib/editor";
 import { readParty, writeSlot } from "./lib/party";
-import { expToNext, LEVEL_CAP } from "./lib/exp-curve";
+import { LEVEL_CAP, carryLevelStep, expToNext } from "./lib/exp-curve";
 import type { ParsedSave } from "./lib/save-format";
 import { ExpStepper, NameField, PLAYER_ACCENTS, Portrait, RollStepper, Tile } from "./ui";
 import { ClockIcon } from "./icons";
@@ -118,6 +118,13 @@ export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
               const here = acquired(i);
               const locked = notMetYet(i);
               const accent = PLAYER_ACCENTS[NAME_LABELS[i]] ?? "#3e63dd";
+              /** Carry the EXP stepper into the adjacent level for this
+               *  character (the level clamp lives in commitSlot). */
+              const rollExp = (delta: 1 | -1) => {
+                if (!slot) return;
+                const target = carryLevelStep(slot.level, delta);
+                if (target) commitSlot(i, target);
+              };
               return (
                 <div
                   key={i}
@@ -173,6 +180,12 @@ export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
                           disabled={!here}
                           accent={accent}
                           onCommit={(v) => commitSlot(i, { xp: v })}
+                          onLevelUp={
+                            here && slot && slot.level < LEVEL_CAP ? () => rollExp(1) : undefined
+                          }
+                          onLevelDown={
+                            here && slot && slot.level > 1 ? () => rollExp(-1) : undefined
+                          }
                         />
                       </div>
                     </FieldRow>

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { EXP_RATES, HUMAN_EXP_RATE, LEVEL_CAP, expToNext } from "./exp-curve";
+import { EXP_RATES, HUMAN_EXP_RATE, LEVEL_CAP, carryLevelStep, expToNext } from "./exp-curve";
 import { YOKAI_CURVE_CLASS, yokaiExpRate } from "./yokai-curve";
 import { PLAYABLE_YOKAI } from "./yokai-playable";
 
@@ -43,5 +43,22 @@ describe("exp curves", () => {
 
   test("unknown species falls back to the class-0 standard curve", () => {
     expect(yokaiExpRate(0xdeadbeef, EXP_RATES)).toBe(EXP_RATES[0]);
+  });
+
+  test("carries EXP steps across level boundaries", () => {
+    expect(carryLevelStep(50, 1)).toEqual({ level: 51, xp: 0 });
+    expect(carryLevelStep(50, -1)).toEqual({ level: 49, xp: expToNext(49) });
+    expect(carryLevelStep(50, -1, EXP_RATES[0])).toEqual({
+      level: 49,
+      xp: expToNext(49, EXP_RATES[0]),
+    });
+    // The two directions invert each other at the boundary.
+    const down = carryLevelStep(50, -1)!;
+    expect(down.xp).toBe(expToNext(down.level));
+  });
+
+  test("cannot carry past the level cap or below level 1", () => {
+    expect(carryLevelStep(LEVEL_CAP, 1)).toBeNull();
+    expect(carryLevelStep(1, -1)).toBeNull();
   });
 });

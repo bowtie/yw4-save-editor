@@ -5,7 +5,7 @@
  *  Key items are deliberately absent: story keys/watches are not bag items —
  *  the save derives them from story-event flags, so they can neither be read
  *  as owned nor granted reliably. */
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Button, Checkbox, Input, ScrollShadow, toast } from "@heroui/react";
 import { SlotText } from "slot-text/react";
 import { play } from "cuelume";
@@ -25,7 +25,9 @@ import type { ParsedSave } from "./lib/save-format";
 import { ItemIcon, RarityStars, RollStepper, removeWithUndo, SubTabs, Tile } from "./ui";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
 
-const ROW_CAP = 400;
+/** Rows mounted at first and added each time the list end scrolls near. */
+const PAGE_SIZE = 60;
+
 /** The game caps bag stacks at 99 (item_config ordinal 7). */
 const STACK_MAX = 99;
 
@@ -89,7 +91,7 @@ const InventoryRow = memo(function InventoryRow({
   onRemove: (index: number, name: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg px-1.5 py-1 hover:bg-surface-hover">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg px-1.5 py-1 [contain-intrinsic-size:auto_2.75rem] [content-visibility:auto] hover:bg-surface-hover">
       <div className="flex min-w-0 flex-1 basis-44 items-center gap-2.5">
         <CheckTick checked={checked} label={info.name} onChange={(c) => onTick(crc, c)} />
         <ItemIcon name={info.name} category={category} />
@@ -156,6 +158,9 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
   const [ticked, setTicked] = useState<Record<string, Set<number>>>({});
   const [, force] = useState(0);
   const rerender = () => force((v) => v + 1);
+  /** Rows mounted so far; resets to one page whenever the group or search changes. */
+  const [rendered, setRendered] = useState({ key: "", count: PAGE_SIZE });
+  const endRef = useRef<HTMLDivElement>(null);
 
   const group = EDITABLE_GROUPS.find((g) => g.id === groupId) ?? EDITABLE_GROUPS[0];
   const def: InventoryDef = group.id === "equipment" ? INVENTORIES.equipment : INVENTORIES.bag;
@@ -166,7 +171,24 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
     .map((crc) => ({ crc, info: itemByCrc(crc) }))
     .filter((i): i is { crc: number; info: ItemInfo } => !!i.info)
     .filter(({ info }) => info.name.toLowerCase().includes(search.toLowerCase()));
-  const shown = catalog.slice(0, ROW_CAP);
+  const listKey = `${groupId}|${search}`;
+  const visibleCount = rendered.key === listKey ? rendered.count : PAGE_SIZE;
+  const shown = catalog.slice(0, visibleCount);
+  const hasMore = shown.length < catalog.length;
+  useEffect(() => {
+    const end = endRef.current;
+    if (!end || !hasMore) return;
+    // Mount the next page shortly before the end scrolls into view.
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting))
+          setRendered({ key: listKey, count: visibleCount + PAGE_SIZE });
+      },
+      { rootMargin: "400px" },
+    );
+    io.observe(end);
+    return () => io.disconnect();
+  }, [hasMore, listKey, visibleCount]);
   /** A ticked item needs filling when it is not owned or sits below a full
    *  stack; already-full items do not count toward the button. */
   const needsFill = (crc: number) => {
@@ -267,7 +289,7 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
           </span>
           <Button
             variant="secondary"
-            onPress={() => setGroupTicked(new Set(shown.map((i) => i.crc)))}
+            onPress={() => setGroupTicked(new Set(catalog.map((i) => i.crc)))}
           >
             Select all
           </Button>
@@ -319,12 +341,7 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
               />
             );
           })}
-          {catalog.length > shown.length && (
-            <p className="p-2 text-center text-xs text-muted">
-              {catalog.length - shown.length} more match
-              {catalog.length - shown.length === 1 ? "" : "es"}. Narrow the search to see it.
-            </p>
-          )}
+          {hasMore && <div ref={endRef} className="h-px" aria-hidden />}
         </div>
       </ScrollShadow>
     </Tile>
