@@ -261,28 +261,28 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
           onChange={(id) => setGroupId(id as GroupId)}
           tabs={EDITABLE_GROUPS.map((g) => ({ id: g.id, label: g.label }))}
         />
-        <span className="whitespace-nowrap font-mono text-xs text-muted" title="Slots used">
-          <SlotText text={`${owned.size}/${def.count}`} /> slots
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="whitespace-nowrap font-mono text-xs text-muted" title="Slots used">
+            <SlotText text={`${owned.size}/${def.count}`} /> slots
+          </span>
+          <Button
+            variant="secondary"
+            onPress={() => setGroupTicked(new Set(shown.map((i) => i.crc)))}
+          >
+            Select all
+          </Button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
-          <Input
-            aria-label={`Search ${group.label}`}
-            placeholder={`Search ${group.label.toLowerCase()}…`}
-            className="h-9 w-full ps-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Button
-          variant="secondary"
-          onPress={() => setGroupTicked(new Set(shown.map((i) => i.crc)))}
-        >
-          Select all
-        </Button>
+      <div className="relative">
+        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
+        <Input
+          aria-label={`Search ${group.label}`}
+          placeholder={`Search ${group.label.toLowerCase()}…`}
+          className="h-9 w-full ps-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {groupTicked.size > 0 && (

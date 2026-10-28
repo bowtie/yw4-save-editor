@@ -95,19 +95,9 @@ function LedgerView({
   const keepsake = match?.item ? ITEM_BY_NAME.get(normName(match.item)) : undefined;
 
   return (
-    <div className="@container flex min-h-0 flex-1 flex-col gap-2.5">
-      {lead}
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
-          <Input
-            aria-label="Search yo-kai souls"
-            placeholder="Search yo-kai…"
-            className="h-9 w-full ps-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+    <div className="@container flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        {lead}
         <Button
           variant={startedOnly ? "primary" : "secondary"}
           aria-pressed={startedOnly}
@@ -115,6 +105,16 @@ function LedgerView({
         >
           Started only
         </Button>
+      </div>
+      <div className="relative">
+        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
+        <Input
+          aria-label="Search yo-kai souls"
+          placeholder="Search yo-kai…"
+          className="h-9 w-full ps-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 @md:grid-cols-2 @md:grid-rows-[minmax(0,1fr)]">
         <div className="flex min-h-0 flex-col gap-2">
@@ -323,23 +323,23 @@ function SoulBagList({
     .sort((a, b) => (soulRank.get(a.crc) ?? 1e9) - (soulRank.get(b.crc) ?? 1e9));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
-      {lead}
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
-          <Input
-            aria-label="Search souls"
-            placeholder="Search souls…"
-            className="h-9 w-full ps-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        {lead}
         <Button variant="primary" onPress={onGiveAll}>
           <span className="hidden sm:inline">Give every soul ×99</span>
           <span className="sm:hidden">Give all ×99</span>
         </Button>
+      </div>
+      <div className="relative">
+        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
+        <Input
+          aria-label="Search souls"
+          placeholder="Search souls…"
+          className="h-9 w-full ps-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
       <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[max(24rem,calc(100dvh-26rem))]">
         <div className="flex flex-col gap-0.5">
