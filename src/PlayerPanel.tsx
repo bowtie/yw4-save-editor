@@ -142,6 +142,7 @@ export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
                         label={`${NAME_LABELS[i]} given name`}
                         value={name}
                         maxBytes={36}
+                        maxChars={8}
                         disabled={locked}
                         placeholder={REAL_NAMES[i]}
                         onCommit={(v) => {

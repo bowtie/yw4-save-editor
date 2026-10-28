@@ -615,14 +615,17 @@ export function useOverlayState(initial = false) {
 const ERROR_RING = "border-danger focus:border-danger";
 
 /**
- * Text field for in-game names: commits every input that fits the slot's
- * byte budget (names are UTF-8 in the save, so multibyte characters count
- * against the limit), and flags overlong input inline without writing it.
+ * Text field for in-game names: commits every input that fits both the game's
+ * character limit and the slot's byte budget (names are UTF-8 in the save, so
+ * multibyte characters count against the budget), and flags overlong input
+ * inline without writing it. Only text typed here is flagged, so a name the
+ * save already holds is never shown as an error.
  */
 export function NameField({
   label,
   value,
   maxBytes,
+  maxChars,
   onCommit,
   className = "w-full",
   disabled,
@@ -631,6 +634,8 @@ export function NameField({
   label: string;
   value: string;
   maxBytes: number;
+  /** The game's own naming limit, in characters. */
+  maxChars?: number;
   onCommit: (v: string) => void;
   className?: string;
   disabled?: boolean;
@@ -638,8 +643,16 @@ export function NameField({
 }) {
   const [text, setText] = useState<string | null>(null);
   const shown = text ?? value;
-  const bytes = new TextEncoder().encode(shown).length;
-  const invalid = bytes > maxBytes;
+  const sizeOf = (v: string) => ({
+    bytes: new TextEncoder().encode(v).length,
+    chars: [...v].length,
+  });
+  const fits = (v: string) => {
+    const { bytes, chars } = sizeOf(v);
+    return bytes <= maxBytes && (maxChars === undefined || chars <= maxChars);
+  };
+  const { bytes, chars } = sizeOf(shown);
+  const invalid = text !== null && !fits(text);
 
   return (
     <div className="min-w-0 flex-1">
@@ -650,17 +663,20 @@ export function NameField({
         value={shown}
         disabled={disabled}
         placeholder={placeholder}
-        title={`Max ${maxBytes} bytes (UTF-8)`}
+        title={
+          maxChars === undefined ? `Max ${maxBytes} bytes (UTF-8)` : `Max ${maxChars} characters`
+        }
         onChange={(e) => {
           setText(e.target.value);
-          if (new TextEncoder().encode(e.target.value).length <= maxBytes) onCommit(e.target.value);
+          if (fits(e.target.value)) onCommit(e.target.value);
         }}
         onBlur={() => setText(null)}
       />
       {invalid && (
         <p className="mt-0.5 text-xs text-danger">
-          {bytes}/{maxBytes} bytes, {bytes - maxBytes} too many. Some characters count as more than
-          one.
+          {maxChars !== undefined && chars > maxChars
+            ? `${chars}/${maxChars} characters, ${chars - maxChars} too many.`
+            : `${bytes}/${maxBytes} bytes, ${bytes - maxBytes} too many. Some characters count as more than one.`}
         </p>
       )}
     </div>

@@ -306,6 +306,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   value={slot.name}
                   placeholder={species ?? undefined}
                   maxBytes={24}
+                  maxChars={8}
                   onCommit={(v) => patch({ name: v })}
                 />
               </LabeledHint>
