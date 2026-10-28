@@ -132,10 +132,12 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
     <Tile>
       <div className="flex min-h-10 items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-          Your yo-kai
-          <span className="ml-2 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-foreground">
-            {owned.length}
-          </span>
+          {adding ? "Roster" : "Collection"}
+          {!adding && (
+            <span className="ml-2 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-foreground">
+              {owned.length}
+            </span>
+          )}
         </p>
         {adding ? (
           <Button
@@ -158,15 +160,15 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
               setSelected(null);
             }}
           >
-            <PlusIcon size={15} /> Add yo-kai
+            <PlusIcon size={15} /> Add
           </Button>
         )}
       </div>
       <div className="relative">
         <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
         <Input
-          aria-label={adding ? "Search the yo-kai roster" : "Search your yo-kai"}
-          placeholder={adding ? "Search the roster…" : "Search your yo-kai…"}
+          aria-label={adding ? "Search the roster" : "Search your collection"}
+          placeholder={adding ? "Search the roster…" : "Search your collection…"}
           className="h-9 w-full ps-8"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -229,9 +231,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                 <p className="p-2 text-center text-xs text-muted">No yo-kai match.</p>
               )}
               {!adding && owned.length === 0 && (
-                <p className="p-2 text-center text-xs text-muted">
-                  No yo-kai yet. Press Add yo-kai.
-                </p>
+                <p className="p-2 text-center text-xs text-muted">No yo-kai yet. Press Add.</p>
               )}
             </div>
           </ScrollShadow>
