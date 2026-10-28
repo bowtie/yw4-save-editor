@@ -24,6 +24,7 @@ import {
   RollStepper,
   removeWithUndo,
   Tile,
+  SubTabs,
 } from "./ui";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
 
@@ -131,12 +132,14 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
   return (
     <Tile>
       <div className="flex min-h-10 items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-          Your yo-kai
-          <span className="ml-2 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-foreground">
-            {owned.length}
-          </span>
-        </p>
+        {/* The same pill as the other tabs' switchers; there is nothing to
+            switch to, the Add and Back button on the right changes the mode. */}
+        <SubTabs
+          label="Yo-kai list"
+          value="current"
+          onChange={() => {}}
+          tabs={[{ id: "current", label: adding ? "Add yo-kai" : `Your yo-kai (${owned.length})` }]}
+        />
         {adding ? (
           <Button
             variant="secondary"
