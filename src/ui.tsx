@@ -686,8 +686,8 @@ export function NameField({
 /** Inline label + control row used across the panels. */
 export function LabeledHint({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1.5 text-xs font-medium text-muted">
-      <span className="whitespace-nowrap">{label}</span>
+    <label className="flex items-center gap-2 text-xs text-muted">
+      <span className="w-[4.5rem] shrink-0 whitespace-nowrap">{label}</span>
       {children}
     </label>
   );

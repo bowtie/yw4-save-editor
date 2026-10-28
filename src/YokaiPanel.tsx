@@ -313,10 +313,10 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
 
               {/* A div, not a <label>: clicking a label's text would press the
                     stepper's first button (−) as its labelled control. */}
-              <div className="flex flex-col gap-1.5 text-xs font-medium text-muted">
-                <span>Level</span>
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <span className="w-[4.5rem] shrink-0 whitespace-nowrap">Level</span>
                 <RollStepper
-                  className="w-full"
+                  className="min-w-0 flex-1"
                   value={slot.level}
                   step={1}
                   min={1}
@@ -325,9 +325,9 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   onCommit={(v) => patch({ level: v })}
                 />
               </div>
-              <div className="flex flex-col gap-1.5 text-xs font-medium text-muted">
-                <span>EXP</span>
-                <div className="w-full">
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <span className="w-[4.5rem] shrink-0 whitespace-nowrap">EXP</span>
+                <div className="min-w-0 flex-1">
                   <ExpStepper
                     xp={slot.xp}
                     toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1), expRate)}

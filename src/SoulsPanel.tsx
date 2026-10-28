@@ -217,15 +217,15 @@ function LedgerView({
               </div>
 
               {soul ? (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                   {TIERS.map(({ which, dot }) => (
-                    <div key={which} className="flex flex-col gap-1.5">
-                      <span className="flex items-center gap-2 text-xs font-medium text-muted">
+                    <div key={which} className="flex items-center gap-2 text-xs text-muted">
+                      <span className="flex w-12 shrink-0 items-center gap-1.5">
                         <span className={`size-2 rounded-full ${dot}`} />
                         {TIER_LABELS[which]}
                       </span>
                       <RollStepper
-                        className="w-full"
+                        className="min-w-0 flex-1"
                         value={soul[which]}
                         step={1}
                         max={0xffff}
