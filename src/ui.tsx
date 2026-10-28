@@ -766,7 +766,7 @@ export function Tile({
 }) {
   return (
     <Card className={`flex min-h-0 flex-1 flex-col p-0 ${className ?? ""}`}>
-      <CardContent className="flex min-h-0 flex-1 flex-col gap-2.5 p-3.5 @container">
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-3.5 @container">
         {(title || icon || aside) && (
           <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-semibold uppercase tracking-wider text-muted">
             {icon && <GameIcon folder="Items" name={icon} className="size-5 object-contain" />}
