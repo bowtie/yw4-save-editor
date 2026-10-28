@@ -233,26 +233,13 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   No yo-kai yet. Press Add yo-kai.
                 </p>
               )}
-              {!adding && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdding(true);
-                    setSearch("");
-                    setSelected(null);
-                  }}
-                  className="mt-1 flex items-center justify-center gap-2 rounded-lg border border-dashed border-border px-2 py-2 text-sm text-muted transition-colors hover:border-accent/60 hover:text-accent"
-                >
-                  <PlusIcon size={15} /> Add yo-kai
-                </button>
-              )}
             </div>
           </ScrollShadow>
         </div>
 
         <div
           ref={detailRef}
-          className={`flex flex-col gap-6 @md:border-l @md:border-border @md:pl-6 @md:overflow-y-auto ${!slot ? "hidden @md:flex" : ""}`}
+          className={`flex flex-col gap-6 @md:justify-center @md:border-l @md:border-border @md:pl-6 @md:overflow-y-auto ${!slot ? "hidden @md:flex" : ""}`}
         >
           {!slot && (
             <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">

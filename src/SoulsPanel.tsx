@@ -169,7 +169,7 @@ function LedgerView({
 
         <div
           ref={detailRef}
-          className={`flex flex-col gap-5 @md:border-l @md:border-border @md:pl-6 @md:overflow-y-auto ${!match ? "hidden @md:flex" : ""}`}
+          className={`flex flex-col gap-5 @md:justify-center @md:border-l @md:border-border @md:pl-6 @md:overflow-y-auto ${!match ? "hidden @md:flex" : ""}`}
         >
           {!match && (
             <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
