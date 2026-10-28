@@ -1,11 +1,14 @@
 /** Game-art image helpers and small shared bits for the panels. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Card,
+  CardContent,
   Input,
   InputGroupInput,
   InputGroupPrefix,
   InputGroupRoot,
   InputGroupSuffix,
+  Tabs,
   toast,
 } from "@heroui/react";
 import { SlotText } from "slot-text/react";
@@ -162,8 +165,16 @@ function LooseIcon({
 }
 
 /** Item catalog icon (category decides the folder). */
-export function ItemIcon({ name, category }: { name: string; category: ItemCategory }) {
-  return <GameIcon folder={CATEGORY_FOLDERS[category]} name={name} />;
+export function ItemIcon({
+  name,
+  category,
+  className,
+}: {
+  name: string;
+  category: ItemCategory;
+  className?: string;
+}) {
+  return <GameIcon folder={CATEGORY_FOLDERS[category]} name={name} className={className} />;
 }
 
 /** Item rarity as the game's list UI shows it: 1-4 gold stars, 5 pink. */
@@ -333,7 +344,7 @@ export const PLAYER_ACCENTS: Record<string, string> = {
   Shin: "#4a7ebb",
 };
 
-/** The rounded accent-tinted portrait badge; shared by the Characters tiles
+/** The rounded accent-tinted portrait badge; shared by the Player tab cards
  *  and the Player name rows so both pages present protagonists identically. */
 export function Portrait({
   name,
@@ -527,7 +538,7 @@ export function RollStepper({
 }
 
 /** EXP stepper drawn over a progress bar filled in the given accent; shared
- *  by Characters and Yo-kai so both edit level progress the same way. At the
+ *  by the Player tab and Yo-kai so both edit level progress the same way. At the
  *  level cap the bar locks and shows MAX (the game stores EXP as 0 there). */
 export function ExpStepper({
   xp,
@@ -535,6 +546,7 @@ export function ExpStepper({
   maxed,
   accent = "#3e63dd",
   onCommit,
+  disabled = false,
 }: {
   xp: number;
   /** EXP needed to clear the current level (the stepper's max). */
@@ -543,6 +555,8 @@ export function ExpStepper({
   maxed: boolean;
   accent?: string;
   onCommit: (v: number) => void;
+  /** Locked entirely (e.g. a character not in the party yet): no bar. */
+  disabled?: boolean;
 }) {
   return (
     <div
@@ -553,7 +567,7 @@ export function ExpStepper({
         borderRadius: 12,
       }}
     >
-      {!maxed && (
+      {!maxed && !disabled && (
         <div
           className="absolute inset-y-0 left-0"
           style={{
@@ -564,14 +578,14 @@ export function ExpStepper({
           }}
         />
       )}
-      {maxed && (
+      {maxed && !disabled && (
         <span className="absolute right-2 z-20 rounded-full bg-surface-secondary px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-muted">
           Max
         </span>
       )}
       <RollStepper
         bare
-        disabled={maxed}
+        disabled={maxed || disabled}
         className="relative z-10 min-w-0 flex-1"
         value={maxed ? 0 : xp}
         step={1}
@@ -656,7 +670,7 @@ export function NameField({
 /** Inline label + control row used across the panels. */
 export function LabeledHint({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-2 text-xs text-muted">
+    <label className="flex flex-col gap-1.5 text-xs font-medium text-muted">
       <span className="whitespace-nowrap">{label}</span>
       {children}
     </label>
@@ -683,4 +697,73 @@ export function removeWithUndo(
       },
     },
   });
+}
+
+/** Compact section switcher that sits inside a toolbar row (so a tab needs
+ *  one row of chrome, not a tab bar plus a toolbar). */
+export function SubTabs({
+  label,
+  value,
+  onChange,
+  tabs,
+}: {
+  label: string;
+  value: string;
+  onChange: (id: string) => void;
+  tabs: { id: string; label: string }[];
+}) {
+  return (
+    <Tabs
+      aria-label={label}
+      selectedKey={value}
+      onSelectionChange={(key) => onChange(String(key))}
+      className="w-auto shrink-0 self-start"
+    >
+      <Tabs.ListContainer>
+        <Tabs.List>
+          {tabs.map((t) => (
+            <Tabs.Tab key={t.id} id={t.id} className="whitespace-nowrap">
+              <Tabs.Indicator />
+              {t.label}
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+      </Tabs.ListContainer>
+    </Tabs>
+  );
+}
+
+/** The shared section panel: a bordered card with a small uppercase title,
+ *  used by every tab so spacing and grouping look the same everywhere. */
+export function Tile({
+  title,
+  icon,
+  aside,
+  children,
+  className,
+}: {
+  title?: string;
+  icon?: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card className={`flex min-h-0 flex-1 flex-col p-0 ${className ?? ""}`}>
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-2.5 p-3.5 @container">
+        {(title || icon || aside) && (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-semibold uppercase tracking-wider text-muted">
+            {icon && <GameIcon folder="Items" name={icon} className="size-5 object-contain" />}
+            {title}
+            {aside && (
+              <span className="ml-auto flex items-center gap-1.5 whitespace-nowrap font-normal normal-case tracking-normal">
+                {aside}
+              </span>
+            )}
+          </p>
+        )}
+        {children}
+      </CardContent>
+    </Card>
+  );
 }

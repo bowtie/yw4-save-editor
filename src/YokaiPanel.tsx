@@ -14,17 +14,34 @@ import { yokaiTribe } from "./lib/yokai-base";
 import { modelParamId, tribeInfo } from "./lib/tribes";
 import { EXP_RATES, LEVEL_CAP, expToNext } from "./lib/exp-curve";
 import { YOKAI_MOVES } from "./lib/yokai-moves";
+import { isSummonable } from "./lib/yokai-summon";
 import type { ParsedSave } from "./lib/save-format";
-import { ExpStepper, GameIcon, LabeledHint, NameField, RollStepper, removeWithUndo } from "./ui";
+import {
+  ExpStepper,
+  GameIcon,
+  LabeledHint,
+  NameField,
+  RollStepper,
+  removeWithUndo,
+  Tile,
+} from "./ui";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
 
 export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState(false);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(
+    () => readYoKaiSlots(parsed).find((s) => s.exists)?.index ?? null,
+  );
   const [, force] = useState(0);
   const detailRef = useRef<HTMLDivElement>(null);
+  const mounted = useRef(false);
   useEffect(() => {
+    // Skip the initial default selection: only follow the user's own picks.
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     if (selected !== null)
       detailRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selected]);
@@ -81,11 +98,12 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
       return;
     }
     const copies = ownedCount.get(y.id) ?? 0;
-    if (copies > 0) {
-      toast.warning(`${y.name} is already in your roster (×${copies})`, {
-        description:
-          "A second one was added anyway, since the game allows duplicates. Remove one if this was an accident.",
+    // Only summonable yo-kai can exist more than once; the rest are unique.
+    if (copies > 0 && !isSummonable(y.icon)) {
+      toast.warning(`${y.name} is unique and already in your roster`, {
+        description: "Only summonable yo-kai can have more than one copy.",
       });
+      return;
     }
     // Prefill the move slots from the form's learnset (skipping the passive
     // first slot — the game equips only active moves and manages them by
@@ -94,11 +112,9 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
     writeSlot(parsed, "yokai", index, { speciesId: y.id, level: 1, skills: moves });
     // Stay in the roster picker so several yo-kai can be added in a row.
     rerender();
-    if (copies === 0) {
-      toast.success(`Added ${y.name} (slot ${index + 1}).`, {
-        description: "Press Back to edit it, or keep adding.",
-      });
-    }
+    toast.success(`Added ${y.name} (slot ${index + 1}).`, {
+      description: "Press Back to edit it, or keep adding.",
+    });
   };
 
   const removeYoKai = (s: PartySlot) => {
@@ -113,18 +129,20 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
   };
 
   return (
-    <div className="@container">
-      <div className="grid grid-cols-1 gap-3 @md:grid-cols-2">
-        <div className="flex flex-col gap-2.5">
+    <Tile>
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 @md:grid-cols-2 @md:grid-rows-[minmax(0,1fr)]">
+        <div className="flex min-h-0 flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-              Your yo-kai · {owned.length}
+              Your yo-kai
+              <span className="ml-2 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-foreground">
+                {owned.length}
+              </span>
             </p>
             {adding ? (
               <Button
                 className="ml-auto"
-                size="sm"
-                variant="outline"
+                variant="secondary"
                 onPress={() => {
                   setAdding(false);
                   // The roster search must not leak into the owned-list
@@ -137,7 +155,6 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
             ) : (
               <Button
                 className="ml-auto"
-                size="sm"
                 variant="primary"
                 onPress={() => {
                   setAdding(true);
@@ -145,7 +162,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   setSelected(null);
                 }}
               >
-                <PlusIcon size={14} /> Add yo-kai
+                <PlusIcon size={15} /> Add yo-kai
               </Button>
             )}
           </div>
@@ -154,22 +171,27 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
             <Input
               aria-label={adding ? "Search the yo-kai roster" : "Search your yo-kai"}
               placeholder={adding ? "Search the roster…" : "Search your yo-kai…"}
-              className="w-full ps-8"
+              className="h-9 w-full ps-8"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <ScrollShadow className="max-h-[50dvh] rounded sm:max-h-96-xl border border-border bg-surface-secondary/50 p-2">
+          <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[max(24rem,calc(100dvh-26rem))]">
             <div className="flex flex-col gap-0.5">
               {adding
                 ? playable.map((y) => {
                     const copies = ownedCount.get(y.id) ?? 0;
+                    const locked = copies > 0 && !isSummonable(y.icon);
                     return (
                       <button
                         key={y.id}
                         type="button"
+                        disabled={locked}
+                        title={locked ? "Unique yo-kai: only one copy can exist" : undefined}
                         onClick={() => addYoKai(y)}
-                        className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-surface-hover"
+                        className={`flex items-center gap-2.5 rounded-lg px-1.5 py-1 text-left transition-colors ${
+                          locked ? "cursor-not-allowed opacity-50" : "hover:bg-surface-hover"
+                        }`}
                       >
                         <GameIcon
                           folder="Yokai"
@@ -179,7 +201,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                         <span className="min-w-0 flex-1 truncate text-sm">{y.name}</span>
                         {copies > 0 ? (
                           <span className="shrink-0 rounded-full bg-accent-soft px-1.5 py-0.5 text-xs font-semibold text-accent">
-                            Owned ×{copies}
+                            {locked ? "Owned" : `Owned ×${copies}`}
                           </span>
                         ) : null}
                         <span className="shrink-0 font-mono text-xs text-muted">No.{y.no}</span>
@@ -213,18 +235,34 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   No yo-kai yet. Press Add yo-kai.
                 </p>
               )}
+              {!adding && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdding(true);
+                    setSearch("");
+                    setSelected(null);
+                  }}
+                  className="mt-1 flex items-center justify-center gap-2 rounded-lg border border-dashed border-border px-2 py-2 text-sm text-muted transition-colors hover:border-accent/60 hover:text-accent"
+                >
+                  <PlusIcon size={15} /> Add yo-kai
+                </button>
+              )}
             </div>
           </ScrollShadow>
         </div>
 
         <div
           ref={detailRef}
-          className={`flex flex-col gap-3 rounded-xl border border-border bg-surface-secondary/50 p-3 ${!slot ? "hidden @md:flex" : ""}`}
+          className={`flex flex-col gap-3 @md:border-l @md:border-border @md:pl-4 @md:overflow-y-auto ${!slot ? "hidden @md:flex" : ""}`}
         >
           {!slot && (
-            <p className="p-4 text-center text-sm text-muted">
-              Select a yo-kai to edit it, or press Add yo-kai.
-            </p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
+              <p className="text-sm font-medium">{owned.length} yo-kai in your roster</p>
+              <p className="text-xs text-muted">
+                Pick one on the left to edit its name, level and EXP, or add a new one.
+              </p>
+            </div>
           )}
 
           {slot && (
@@ -243,17 +281,18 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                         folder="Tribes"
                         name={tribe.emblem}
                         alt={`${tribe.name} tribe`}
-                        className="size-4 shrink-0 object-contain"
+                        className="size-5 shrink-0 object-contain"
                       />
                     )}
-                    {tribe ? `${tribe.name} · ` : ""}Slot {slot.index + 1}
+                    {tribe && <span>{tribe.name}</span>}
+                    <span className="text-muted/70">Slot {slot.index + 1}</span>
                   </p>
                 </div>
                 <Button
-                  size="sm"
-                  variant="ghost"
+                  size="md"
+                  variant="secondary"
                   isIconOnly
-                  className="shrink-0 text-danger"
+                  className="shrink-0 text-muted hover:text-danger"
                   aria-label={`Remove ${species}`}
                   onPress={() => removeYoKai(slot)}
                 >
@@ -265,6 +304,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                 <NameField
                   label="Given name"
                   value={slot.name}
+                  placeholder={species ?? undefined}
                   maxBytes={24}
                   onCommit={(v) => patch({ name: v })}
                 />
@@ -272,10 +312,10 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
 
               {/* A div, not a <label>: clicking a label's text would press the
                     stepper's first button (−) as its labelled control. */}
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <span className="w-9 whitespace-nowrap">Level</span>
+              <div className="flex flex-col gap-1.5 text-xs font-medium text-muted">
+                <span>Level</span>
                 <RollStepper
-                  className="min-w-0 flex-1"
+                  className="w-full"
                   value={slot.level}
                   step={1}
                   min={1}
@@ -284,9 +324,9 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   onCommit={(v) => patch({ level: v })}
                 />
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <span className="w-9 whitespace-nowrap">EXP</span>
-                <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-1.5 text-xs font-medium text-muted">
+                <span>EXP</span>
+                <div className="w-full">
                   <ExpStepper
                     xp={slot.xp}
                     toNext={expToNext(Math.min(slot.level, LEVEL_CAP - 1), expRate)}
@@ -296,33 +336,16 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   />
                 </div>
               </div>
-
-              <p className="text-xs text-muted">
-                {slot.level >= LEVEL_CAP ? (
-                  <>Max level reached. The game stores EXP as 0 from here on.</>
-                ) : (
-                  <>
-                    EXP is progress within the level: {slot.xp.toLocaleString("en-US")} /{" "}
-                    {expToNext(slot.level, expRate).toLocaleString("en-US")} on this species' curve.
-                  </>
-                )}
-              </p>
-
-              <p className="text-xs text-muted">
-                Moves are learned and equipped automatically as a yo-kai levels up. HP, Yo-kai
-                points, the power gauge and the "+" bonuses all come from level and equipment, and
-                the game manages those, so here you edit the name, level and EXP.
-              </p>
             </>
           )}
         </div>
       </div>
-    </div>
+    </Tile>
   );
 
   function patch(p: Parameters<typeof writeSlot>[3]) {
     if (!slot) return;
-    // Same guarantees as the Characters tab: at the level cap the game stops
+    // Same guarantees as the Player tab: at the level cap the game stops
     // tracking EXP (stored as 0); below it, EXP never exceeds the species'
     // current-level requirement, including when the level drops.
     if ((p.level ?? slot.level) >= LEVEL_CAP) {

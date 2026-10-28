@@ -6,7 +6,7 @@
  *  the save derives them from story-event flags, so they can neither be read
  *  as owned nor granted reliably. */
 import { memo, useCallback, useState } from "react";
-import { Button, Checkbox, Input, ScrollShadow, Tabs, toast } from "@heroui/react";
+import { Button, Checkbox, Input, ScrollShadow, toast } from "@heroui/react";
 import { SlotText } from "slot-text/react";
 import { play } from "cuelume";
 import {
@@ -22,7 +22,7 @@ import { itemByCrc, type ItemCategory, type ItemInfo } from "./lib/item-data";
 import { ITEM_GROUPS } from "./lib/item-order";
 import { ITEM_EXCLUSIVITY } from "./lib/item-exclusivity";
 import type { ParsedSave } from "./lib/save-format";
-import { ItemIcon, RarityStars, RollStepper, removeWithUndo } from "./ui";
+import { ItemIcon, RarityStars, RollStepper, removeWithUndo, SubTabs, Tile } from "./ui";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
 
 const ROW_CAP = 400;
@@ -93,8 +93,10 @@ const InventoryRow = memo(function InventoryRow({
       <div className="flex min-w-0 flex-1 basis-44 items-center gap-2.5">
         <CheckTick checked={checked} label={info.name} onChange={(c) => onTick(crc, c)} />
         <ItemIcon name={info.name} category={category} />
-        <span className="flex min-w-0 flex-1 items-center gap-1.5">
-          <span className={`truncate text-sm ${owned ? "" : "text-muted"}`}>{info.name}</span>
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5">
+          <span className={`max-w-full truncate text-sm ${owned ? "" : "text-muted"}`}>
+            {info.name}
+          </span>
           <RarityStars rarity={info.rarity} />
           {exclusive && (
             <span
@@ -119,22 +121,21 @@ const InventoryRow = memo(function InventoryRow({
               onCommit={(v) => onQuantity(slotIndex, v)}
             />
             <Button
-              size="sm"
-              variant="ghost"
+              size="md"
+              variant="secondary"
               isIconOnly
               aria-label={`Remove ${info.name}`}
-              className="text-muted"
+              className="text-muted hover:text-danger"
               onPress={() => onRemove(slotIndex, info.name)}
             >
-              <TrashIcon size={14} />
+              <TrashIcon size={15} />
             </Button>
           </>
         ) : (
           <>
-            <span className="hidden w-24 text-center text-xs text-muted sm:block">—</span>
             <Button
-              size="sm"
-              variant="ghost"
+              size="md"
+              variant="secondary"
               isIconOnly
               aria-label={`Give ${info.name}`}
               className="text-muted"
@@ -252,59 +253,51 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
   };
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <Tabs
-        variant="secondary"
-        selectedKey={groupId}
-        onSelectionChange={(key) => setGroupId(key as GroupId)}
-        aria-label="Inventory sections"
-      >
-        <Tabs.ListContainer>
-          <Tabs.List>
-            {EDITABLE_GROUPS.map((g) => (
-              <Tabs.Tab key={g.id} id={g.id}>
-                <Tabs.Indicator />
-                {g.label}
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-      </Tabs>
+    <Tile>
+      <div className="flex items-center justify-between gap-3">
+        <SubTabs
+          label="Inventory sections"
+          value={groupId}
+          onChange={(id) => setGroupId(id as GroupId)}
+          tabs={EDITABLE_GROUPS.map((g) => ({ id: g.id, label: g.label }))}
+        />
+        <span className="whitespace-nowrap font-mono text-xs text-muted" title="Slots used">
+          <SlotText text={`${owned.size}/${def.count}`} /> slots
+        </span>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-48 flex-1">
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
           <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
           <Input
             aria-label={`Search ${group.label}`}
             placeholder={`Search ${group.label.toLowerCase()}…`}
-            className="w-full ps-8"
+            className="h-9 w-full ps-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Button
-          size="sm"
-          variant="outline"
+          variant="secondary"
           onPress={() => setGroupTicked(new Set(shown.map((i) => i.crc)))}
         >
           Select all
         </Button>
-        <Button size="sm" variant="outline" onPress={() => setGroupTicked(new Set())}>
-          Clear
-        </Button>
-        <Button size="sm" variant="primary" isDisabled={giveCount === 0} onPress={giveTicked}>
-          Fill ticked ×99 · {giveCount}
-        </Button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-xs text-muted">
-        <span>Use + and the bin per item, or tick several and fill them to a full stack.</span>
-        <span className="whitespace-nowrap font-mono">
-          <SlotText text={`${owned.size}/${def.count}`} /> slots used
-        </span>
-      </div>
+      {groupTicked.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-accent-soft/30 px-3 py-1.5 text-sm">
+          <span className="mr-auto">{groupTicked.size} selected</span>
+          <Button variant="secondary" onPress={() => setGroupTicked(new Set())}>
+            Clear
+          </Button>
+          <Button variant="primary" isDisabled={giveCount === 0} onPress={giveTicked}>
+            Fill ×99 ({giveCount})
+          </Button>
+        </div>
+      )}
 
-      <ScrollShadow className="max-h-[55dvh] sm:max-h-[28rem] rounded-xl border border-border bg-surface-secondary/50 p-2">
+      <ScrollShadow className="min-h-0 flex-1 max-h-[55dvh] pr-1 sm:max-h-[max(24rem,calc(100dvh-26rem))]">
         <div className="flex flex-col gap-0.5">
           {shown.map(({ crc, info: item }) => {
             const slot = owned.get(crc);
@@ -334,6 +327,6 @@ export function InventoryPanel({ parsed }: { parsed: ParsedSave }) {
           )}
         </div>
       </ScrollShadow>
-    </div>
+    </Tile>
   );
 }

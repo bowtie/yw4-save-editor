@@ -10,7 +10,6 @@ import { SaveFolderDrop } from "./dropzone";
 import { PlayerPanel } from "./PlayerPanel";
 import { InventoryPanel } from "./InventoryPanel";
 import { SoulsPanel } from "./SoulsPanel";
-import { PartyPanel } from "./PartyPanel";
 import { YokaiPanel } from "./YokaiPanel";
 import { DownloadIcon } from "./icons";
 import { useOverlayState } from "./ui";
@@ -40,11 +39,10 @@ interface PendingDiscard {
   run: () => void;
 }
 
-type TabId = "player" | "party" | "yokai" | "inventory" | "souls";
+type TabId = "player" | "yokai" | "inventory" | "souls";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "player", label: "Player" },
-  { id: "party", label: "Characters" },
   { id: "yokai", label: "Yo-kai" },
   { id: "inventory", label: "Inventory" },
   { id: "souls", label: "Souls" },
@@ -70,9 +68,9 @@ export default function Editor() {
     AUTOSAVE: "Auto Save",
   };
 
-  /** "Switch · User Save", marked when the slot was guessed from contents. */
+  /** "Switch User Save", marked when the slot was guessed from contents. */
   const slotTitle = (save: EditableSave) =>
-    `${save.platform === "switch" ? "Switch" : "PS4"} · ${SLOT_LABELS[save.slot] ?? save.slot}${save.guessed ? " (detected)" : ""}`;
+    `${save.platform === "switch" ? "Switch" : "PS4"} ${SLOT_LABELS[save.slot] ?? save.slot}${save.guessed ? " (detected)" : ""}`;
 
   const [loading, setLoading] = useState(false);
 
@@ -192,15 +190,6 @@ export default function Editor() {
     void loadSave(saves[selectedSave], { keepTab: true });
   };
 
-  const reset = () => {
-    setSaves([]);
-    setNotes([]);
-    setSelectedSave(0);
-    setParsed(null);
-    originalRef.current = null;
-    setChanges(null);
-  };
-
   const hasEdits = (): boolean => {
     const differs = (a: Uint8Array | null, b: Uint8Array | null) => {
       if (!a || !b || a.length !== b.length) return false;
@@ -274,7 +263,7 @@ export default function Editor() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-6xl px-3 py-6 sm:px-6 sm:py-10">
       <header className="mb-4 flex items-center gap-3 sm:mb-6 sm:gap-4">
         <img src={WATCH_UP_ICON} alt="" className="size-10 shrink-0 object-contain sm:size-12" />
         <h1 className="text-xl font-bold sm:text-2xl leading-tight tracking-tight">
@@ -297,15 +286,22 @@ export default function Editor() {
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   {saves.length === 1 ? (
-                    <span className="rounded-lg bg-surface-secondary px-3 py-1 text-sm font-medium">
-                      {slotTitle(saves[0])}
+                    <span
+                      title={notes
+                        .filter((n) => !n.warn)
+                        .map((n) => n.text)
+                        .join(" ")}
+                      className="flex items-center gap-2 rounded-lg bg-surface-secondary px-3 py-1 text-sm font-medium"
+                    >
+                      <PlatformBadge platform={saves[0].platform} size={18} />
+                      {SLOT_LABELS[saves[0].slot] ?? saves[0].slot}
+                      {saves[0].guessed && <span className="font-normal text-muted">detected</span>}
                     </span>
                   ) : (
                     saves.map((save, i) => (
                       <Button
                         key={`${save.platform}-${save.slot}`}
-                        size="sm"
-                        variant={i === selectedSave ? "primary" : "outline"}
+                        variant={i === selectedSave ? "primary" : "secondary"}
                         aria-label={`${slotTitle(save)} (${save.fileName})`}
                         onPress={() => {
                           if (i === selectedSave) return;
@@ -321,20 +317,17 @@ export default function Editor() {
                       </Button>
                     ))
                   )}
-                  <PlatformBadge
-                    platform={saves[selectedSave].platform}
-                    size={28}
-                    className="ml-auto"
-                  />
                 </div>
-                {notes.length > 0 && (
+                {notes.some((n) => n.warn) && (
                   <div className="flex flex-col gap-0.5 text-xs">
-                    {notes.map((note, i) => (
-                      <p key={i} className={note.warn ? "text-warning" : "text-muted"}>
-                        {note.warn ? "⚠ " : ""}
-                        {note.text}
-                      </p>
-                    ))}
+                    {notes
+                      .filter((n) => n.warn)
+                      .map((note, i) => (
+                        <p key={i} className={note.warn ? "text-warning" : "text-muted"}>
+                          {note.warn ? "⚠ " : ""}
+                          {note.text}
+                        </p>
+                      ))}
                   </div>
                 )}
               </div>
@@ -361,7 +354,6 @@ export default function Editor() {
                 {TABS.map((t) => (
                   <Tabs.Panel key={t.id} id={t.id} className="p-0 pt-3">
                     {t.id === "player" && <PlayerPanel key={version} parsed={parsed} />}
-                    {t.id === "party" && <PartyPanel key={version} parsed={parsed} />}
                     {t.id === "yokai" && <YokaiPanel key={version} parsed={parsed} />}
                     {t.id === "inventory" && <InventoryPanel key={version} parsed={parsed} />}
                     {t.id === "souls" && <SoulsPanel key={version} parsed={parsed} />}
@@ -379,28 +371,12 @@ export default function Editor() {
                     className={`size-2 rounded-full ${dirty ? "bg-warning" : "bg-border-secondary"}`}
                   />
                   <span className="hidden sm:inline">
-                    {dirty ? "Edited · not downloaded yet" : "No edits yet"}
+                    {dirty ? "Edited, not downloaded yet" : "No edits yet"}
                   </span>
                   {dirty && <span className="sm:hidden">Edited</span>}
                 </span>
                 <Button
-                  size="sm"
-                  variant="ghost"
-                  onPress={() =>
-                    guardDiscard({
-                      title: "Load another save?",
-                      body: "Your edits will be lost. Download first to keep them.",
-                      confirm: "Discard and load another",
-                      run: reset,
-                    })
-                  }
-                >
-                  <span className="hidden sm:inline">Load another save</span>
-                  <span className="sm:hidden">Load</span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                  variant="danger-soft"
                   aria-label="Discard all edits and re-read the dropped save"
                   onPress={() =>
                     guardDiscard({
@@ -414,7 +390,7 @@ export default function Editor() {
                   <span className="hidden sm:inline">Reset edits</span>
                   <span className="sm:hidden">Reset</span>
                 </Button>
-                <Button size="sm" variant="primary" isDisabled={!dirty} onPress={requestDownload}>
+                <Button variant="primary" isDisabled={!dirty} onPress={requestDownload}>
                   <DownloadIcon size={15} />
                   <span className="hidden sm:inline">Download edited save</span>
                   <span className="sm:hidden">Download</span>
@@ -446,10 +422,10 @@ export default function Editor() {
                   />
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button size="sm" variant="ghost" onPress={confirmState.close}>
+                  <Button variant="secondary" onPress={confirmState.close}>
                     Keep editing
                   </Button>
-                  <Button size="sm" variant="primary" onPress={download}>
+                  <Button variant="primary" onPress={download}>
                     <DownloadIcon size={15} /> Download
                   </Button>
                 </Modal.Footer>
@@ -471,11 +447,10 @@ export default function Editor() {
                   <p className="text-sm text-muted">{pendingDiscard.body}</p>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button size="sm" variant="ghost" onPress={discardState.close}>
+                  <Button variant="secondary" onPress={discardState.close}>
                     Keep editing
                   </Button>
                   <Button
-                    size="sm"
                     variant="danger"
                     onPress={() => {
                       discardState.close();
@@ -519,9 +494,7 @@ function DownloadPreview({
         <ul className="flex flex-col gap-1 text-sm">
           {summary.map((line, i) => (
             <li key={i} className="flex gap-2">
-              <span aria-hidden className="text-accent">
-                •
-              </span>
+              <span aria-hidden className="mt-1 h-4 w-0.5 shrink-0 rounded-full bg-accent" />
               <span className="min-w-0">{line}</span>
             </li>
           ))}
@@ -533,7 +506,7 @@ function DownloadPreview({
       </p>
       <details className="text-xs text-muted">
         <summary className="cursor-pointer select-none">
-          Technical detail: {changes.length} byte region{changes.length === 1 ? "" : "s"} ·{" "}
+          Technical detail: {changes.length} byte region{changes.length === 1 ? "" : "s"},{" "}
           {totalBytes.toLocaleString()} bytes
         </summary>
         <ScrollShadow className="mt-2 max-h-48 rounded-xl border border-border bg-surface-secondary/50 p-2">

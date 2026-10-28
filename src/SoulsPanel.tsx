@@ -2,8 +2,8 @@
  *  white / red / gold soul counters on the right. The per-yo-kai list
  *  shows every matchable species; ones the save has no ledger row for
  *  sit faded with a + that creates the row. */
-import { useEffect, useRef, useState } from "react";
-import { Button, Input, ScrollShadow, Tabs, toast } from "@heroui/react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Button, Input, ScrollShadow, toast } from "@heroui/react";
 import {
   addYoKaiSoulRow,
   clearSlot,
@@ -16,18 +16,23 @@ import {
   type Slot,
   type YokaiSoulSlot,
 } from "./lib/editor";
-import { itemByCrc } from "./lib/item-data";
+import { ITEMS, itemByCrc } from "./lib/item-data";
 import { ITEM_GROUPS } from "./lib/item-order";
 import { SOULS_CATALOG } from "./lib/souls-catalog";
 import { KONKATSU_LIST } from "./lib/konkatsu-list";
 import { tribeInfo } from "./lib/tribes";
 import type { ParsedSave } from "./lib/save-format";
-import { GameIcon, RarityStars, RollStepper, removeWithUndo } from "./ui";
+import { GameIcon, RarityStars, RollStepper, removeWithUndo, SubTabs, Tile, ItemIcon } from "./ui";
 import { SOUL_ART } from "./lib/soul-art";
 import { yokaiRank, yokaiTribe } from "./lib/yokai-base";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
 
 const def = INVENTORIES.souls;
+
+/** Keepsake items named by the summon list, looked up in the item catalog so
+ *  they can show the same icon the inventory uses. */
+const normName = (name: string) => name.replace(/[’‘]/g, "'").toLowerCase();
+const ITEM_BY_NAME = new Map(ITEMS.map((item) => [normName(item[1]), item]));
 
 /** Soul item -> art path ("Tribes/<emblem>" for general souls, ark chara id
  *  for yo-kai tier souls). */
@@ -54,39 +59,66 @@ function LedgerView({
   parsed,
   soulsByParam,
   onEdited,
+  lead,
 }: {
   parsed: ParsedSave;
   soulsByParam: Map<number, YokaiSoulSlot>;
   onEdited: () => void;
+  lead: ReactNode;
 }) {
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [startedOnly, setStartedOnly] = useState(false);
+  const [selected, setSelected] = useState<string | null>(
+    () =>
+      (KONKATSU_LIST.find((m) => soulsByParam.has(m.paramId)) ?? KONKATSU_LIST[0])?.model ?? null,
+  );
   const detailRef = useRef<HTMLDivElement>(null);
   // Single-column layouts stack the detail under the list: bring it into view.
+  const mounted = useRef(false);
   useEffect(() => {
+    // Skip the initial default selection: only follow the user's own picks.
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     if (selected) detailRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selected]);
-  const shown = KONKATSU_LIST.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
+  const shown = KONKATSU_LIST.filter(
+    (m) =>
+      m.name.toLowerCase().includes(search.toLowerCase()) &&
+      (!startedOnly || soulsByParam.has(m.paramId)),
+  );
   const match = KONKATSU_LIST.find((m) => m.model === selected);
   const soul = match ? soulsByParam.get(match.paramId) : undefined;
   const tribe = match ? tribeInfo(yokaiTribe(match.paramId)) : undefined;
   const rank = match ? yokaiRank(match.paramId) : undefined;
+  const keepsake = match?.item ? ITEM_BY_NAME.get(normName(match.item)) : undefined;
 
   return (
-    <div className="@container pt-2.5">
-      <div className="grid grid-cols-1 gap-3 @md:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
-            <Input
-              aria-label="Search yo-kai souls"
-              placeholder="Search yo-kai…"
-              className="w-full ps-8"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <ScrollShadow className="max-h-[50dvh] rounded sm:max-h-96-xl border border-border bg-surface-secondary/50 p-2">
+    <div className="@container flex min-h-0 flex-1 flex-col gap-2.5">
+      {lead}
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
+          <Input
+            aria-label="Search yo-kai souls"
+            placeholder="Search yo-kai…"
+            className="h-9 w-full ps-8"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button
+          variant={startedOnly ? "primary" : "secondary"}
+          aria-pressed={startedOnly}
+          onPress={() => setStartedOnly((v) => !v)}
+        >
+          Started only
+        </Button>
+      </div>
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 @md:grid-cols-2 @md:grid-rows-[minmax(0,1fr)]">
+        <div className="flex min-h-0 flex-col gap-2">
+          <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[max(24rem,calc(100dvh-26rem))]">
             <div className="flex flex-col gap-0.5">
               {shown.map((m) => {
                 const row = soulsByParam.get(m.paramId);
@@ -124,9 +156,7 @@ function LedgerView({
                           </span>
                         ))}
                       </span>
-                    ) : (
-                      <span className="shrink-0 text-xs text-muted">Not started</span>
-                    )}
+                    ) : null}
                   </button>
                 );
               })}
@@ -139,10 +169,17 @@ function LedgerView({
 
         <div
           ref={detailRef}
-          className={`flex flex-col gap-3 rounded-xl border border-border bg-surface-secondary/50 p-3 ${!match ? "hidden @md:flex" : ""}`}
+          className={`flex flex-col gap-3 @md:border-l @md:border-border @md:pl-4 @md:overflow-y-auto ${!match ? "hidden @md:flex" : ""}`}
         >
           {!match && (
-            <p className="p-4 text-center text-sm text-muted">Select a yo-kai to edit its souls.</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
+              <p className="text-sm font-medium">
+                {soulsByParam.size} of {KONKATSU_LIST.length} yo-kai started
+              </p>
+              <p className="text-xs text-muted">
+                Pick a yo-kai on the left to edit its white, red and gold souls.
+              </p>
+            </div>
           )}
           {match && (
             <>
@@ -160,7 +197,7 @@ function LedgerView({
                         folder="Tribes"
                         name={tribe.emblem}
                         alt=""
-                        className="size-4 shrink-0 object-contain"
+                        className="size-5 shrink-0 object-contain"
                       />
                     )}
                     {tribe?.name}
@@ -170,7 +207,7 @@ function LedgerView({
                           folder="Tribes"
                           name={`rank_${RANK_LETTERS[rank]}`}
                           alt=""
-                          className="ml-1 size-4 shrink-0 object-contain"
+                          className="ml-1 size-5 shrink-0 object-contain"
                         />
                         Rank {RANK_LETTERS[rank]}
                       </>
@@ -180,15 +217,15 @@ function LedgerView({
               </div>
 
               {soul ? (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-4">
                   {TIERS.map(({ which, dot }) => (
-                    <div key={which} className="flex items-center gap-2 text-xs text-muted">
-                      <span className="flex w-12 shrink-0 items-center gap-1.5">
+                    <div key={which} className="flex flex-col gap-1.5">
+                      <span className="flex items-center gap-2 text-xs font-medium text-muted">
                         <span className={`size-2 rounded-full ${dot}`} />
                         {TIER_LABELS[which]}
                       </span>
                       <RollStepper
-                        className="min-w-0 flex-1"
+                        className="w-full"
                         value={soul[which]}
                         step={1}
                         max={0xffff}
@@ -205,7 +242,6 @@ function LedgerView({
                 <div className="flex flex-col items-start gap-2">
                   <p className="text-xs text-muted">This save has no souls for {match.name} yet.</p>
                   <Button
-                    size="sm"
                     variant="primary"
                     onPress={() => {
                       try {
@@ -216,25 +252,43 @@ function LedgerView({
                       }
                     }}
                   >
-                    <PlusIcon size={14} /> Start {match.name} souls
+                    <PlusIcon size={15} /> Start {match.name} souls
                   </Button>
                 </div>
               )}
 
-              <div className="flex flex-col gap-1 border-t border-border pt-2.5 text-xs text-muted">
-                <span className="font-semibold uppercase tracking-wider">Summon cost</span>
-                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div className="flex flex-col gap-3 border-t border-border pt-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Summon cost
+                </span>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
                   {match.souls.map(({ tier, count }) => (
-                    <span key={tier} className="flex items-center gap-1 tabular-nums">
+                    <span key={tier} className="flex items-center gap-2 tabular-nums">
                       <span
-                        className={`size-2 rounded-full ${TIERS.find((t) => t.which === tier)!.dot}`}
+                        className={`size-2.5 rounded-full ${TIERS.find((t) => t.which === tier)!.dot}`}
                       />
                       {count} {TIER_LABELS[tier].toLowerCase()}
                     </span>
                   ))}
-                  <span className="tabular-nums">{match.money.toLocaleString("en-US")} money</span>
-                  {match.item && <span>{match.item}</span>}
-                </span>
+                  <span className="flex items-center gap-2 tabular-nums">
+                    <GameIcon
+                      folder="Items"
+                      name="Y Coin"
+                      className="size-5 shrink-0 object-contain"
+                    />
+                    {match.money.toLocaleString("en-US")}
+                  </span>
+                  {match.item && (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon
+                        name={keepsake?.[1] ?? match.item}
+                        category={keepsake?.[2] ?? "consumable"}
+                        className="size-5 shrink-0 object-contain"
+                      />
+                      {match.item}
+                    </span>
+                  )}
+                </div>
               </div>
             </>
           )}
@@ -244,7 +298,17 @@ function LedgerView({
   );
 }
 
-function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () => void }) {
+function SoulBagList({
+  parsed,
+  onEdited,
+  lead,
+  onGiveAll,
+}: {
+  parsed: ParsedSave;
+  onEdited: () => void;
+  lead: ReactNode;
+  onGiveAll: () => void;
+}) {
   const [search, setSearch] = useState("");
   const owned = new Map<number, Slot>(readInventory(parsed, def).map((s) => [s.crc, s]));
   /** Game display order, from item_config's ITEM_SOUL_INFO sort index. */
@@ -259,18 +323,25 @@ function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () =>
     .sort((a, b) => (soulRank.get(a.crc) ?? 1e9) - (soulRank.get(b.crc) ?? 1e9));
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="relative">
-        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
-        <Input
-          aria-label="Search souls"
-          placeholder="Search souls…"
-          className="w-full ps-8"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      {lead}
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted" />
+          <Input
+            aria-label="Search souls"
+            placeholder="Search souls…"
+            className="h-9 w-full ps-8"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button variant="primary" onPress={onGiveAll}>
+          <span className="hidden sm:inline">Give every soul ×99</span>
+          <span className="sm:hidden">Give all ×99</span>
+        </Button>
       </div>
-      <ScrollShadow className="max-h-[50dvh] rounded sm:max-h-80-xl border border-border bg-surface-secondary/50 p-2">
+      <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[max(24rem,calc(100dvh-26rem))]">
         <div className="flex flex-col gap-0.5">
           {catalog.map((item) => {
             const slot = owned.get(item.crc);
@@ -315,11 +386,11 @@ function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () =>
                       }}
                     />
                     <Button
-                      size="sm"
-                      variant="ghost"
+                      size="md"
+                      variant="secondary"
                       isIconOnly
                       aria-label={`Remove ${item.name}`}
-                      className="text-muted"
+                      className="text-muted hover:text-danger"
                       onPress={() => {
                         removeWithUndo(
                           parsed,
@@ -329,13 +400,13 @@ function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () =>
                         );
                       }}
                     >
-                      <TrashIcon size={14} />
+                      <TrashIcon size={15} />
                     </Button>
                   </>
                 ) : (
                   <Button
-                    size="sm"
-                    variant="ghost"
+                    size="md"
+                    variant="secondary"
                     isIconOnly
                     aria-label={`Give ${item.name}`}
                     className="text-muted"
@@ -357,6 +428,7 @@ function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () =>
 }
 
 export function SoulsPanel({ parsed }: { parsed: ParsedSave }) {
+  const [view, setView] = useState<"bag" | "ledger">("bag");
   const [, force] = useState(0);
   const rerender = () => force((v) => v + 1);
   const souls = readYoKaiSouls(parsed);
@@ -374,38 +446,25 @@ export function SoulsPanel({ parsed }: { parsed: ParsedSave }) {
     else toast.warning("Nothing to add.");
   };
 
+  const lead = (
+    <SubTabs
+      label="Soul sections"
+      value={view}
+      onChange={(id) => setView(id as "bag" | "ledger")}
+      tabs={[
+        { id: "bag", label: "Soul bag" },
+        { id: "ledger", label: "Yo-kai souls" },
+      ]}
+    />
+  );
+
   return (
-    <div className="flex flex-col gap-2.5">
-      <Tabs variant="secondary" aria-label="Soul sections">
-        <Tabs.ListContainer>
-          <Tabs.List>
-            <Tabs.Tab key="bag" id="bag">
-              <Tabs.Indicator />
-              Soul bag
-            </Tabs.Tab>
-            <Tabs.Tab key="ledger" id="ledger">
-              <Tabs.Indicator />
-              Yo-kai souls
-            </Tabs.Tab>
-          </Tabs.List>
-        </Tabs.ListContainer>
-        <Tabs.Panel key="bag" id="bag" className="p-0">
-          <div className="flex flex-col gap-2.5 pt-2.5">
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                Craft and summon materials
-              </p>
-              <Button size="sm" variant="outline" className="ml-auto" onPress={giveAll}>
-                Give every soul ×99
-              </Button>
-            </div>
-            <SoulBagList parsed={parsed} onEdited={rerender} />
-          </div>
-        </Tabs.Panel>
-        <Tabs.Panel key="ledger" id="ledger" className="p-0">
-          <LedgerView parsed={parsed} soulsByParam={soulsByParam} onEdited={rerender} />
-        </Tabs.Panel>
-      </Tabs>
-    </div>
+    <Tile>
+      {view === "bag" ? (
+        <SoulBagList parsed={parsed} onEdited={rerender} lead={lead} onGiveAll={giveAll} />
+      ) : (
+        <LedgerView parsed={parsed} soulsByParam={soulsByParam} onEdited={rerender} lead={lead} />
+      )}
+    </Tile>
   );
 }
