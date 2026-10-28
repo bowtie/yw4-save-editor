@@ -4,7 +4,6 @@
  *  writing to them would plant a character the save never had. */
 
 import { useState } from "react";
-import { Card, CardContent } from "@heroui/react";
 import { readParty, writeSlot, type PartySlot } from "./lib/party";
 import type { ParsedSave } from "./lib/save-format";
 import { ExpStepper, Portrait, PLAYER_ACCENTS, RollStepper } from "./ui";
@@ -41,8 +40,8 @@ function CharacterTile({
         acquired ? "border-border" : "border-dashed border-border"
       }`}
     >
-      <div className={`flex self-stretch ${acquired ? "" : "opacity-50 grayscale"}`}>
-        <Portrait name={spriteName} fill />
+      <div className={`flex ${acquired ? "self-stretch" : "opacity-50 grayscale"}`}>
+        <Portrait name={spriteName} fill={acquired} size={acquired ? 72 : 44} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="truncate text-sm font-semibold">{displayName}</p>
@@ -83,7 +82,7 @@ function CharacterTile({
 /** Grid order matches the Player page's protagonist rows (Nate, Katie,
  *  Summer, Touma, Akinori, Shin); the save's party slots themselves are
  *  stored in join order, with Katie's slot fifth. */
-const DISPLAY_ORDER = [0, 4, 1, 2, 3, 5];
+export const DISPLAY_ORDER = [0, 4, 1, 2, 3, 5];
 
 export function PartyPanel({ parsed }: { parsed: ParsedSave }) {
   const [slots, setSlots] = useState(() => readParty(parsed));
@@ -112,18 +111,14 @@ export function PartyPanel({ parsed }: { parsed: ParsedSave }) {
 
   return (
     <div className="@container">
-      <Card>
-        <CardContent className="flex flex-col gap-2.5 p-3.5 @container">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-            Main characters
-          </p>
-          <div className="grid grid-cols-1 gap-2 @md:grid-cols-2">
-            {DISPLAY_ORDER.map((i) => slots[i]).map((slot) => (
-              <CharacterTile key={slot.index} slot={slot} onCommit={commit} />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-2.5 @container">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">Main characters</p>
+        <div className="grid grid-cols-1 gap-2 @md:grid-cols-2">
+          {DISPLAY_ORDER.map((i) => slots[i]).map((slot) => (
+            <CharacterTile key={slot.index} slot={slot} onCommit={commit} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

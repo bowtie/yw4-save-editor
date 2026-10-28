@@ -1,6 +1,6 @@
 /** Player tab: wallet, crank-a-kai attempts and protagonist names. */
 import { useState } from "react";
-import { Card, CardContent, InputGroupInput, InputGroupRoot } from "@heroui/react";
+import { Card, CardContent } from "@heroui/react";
 import {
   CRANK_MAX,
   readMoneySpent,
@@ -12,6 +12,8 @@ import {
 import type { ParsedSave } from "./lib/save-format";
 import { GameIcon, NameField, Portrait, RollStepper } from "./ui";
 import { ClockIcon } from "./icons";
+import { readParty } from "./lib/party";
+import { DISPLAY_ORDER } from "./PartyPanel";
 
 const NAME_LABELS = ["Nate", "Katie", "Summer", "Touma", "Akinori", "Shin"];
 
@@ -45,13 +47,13 @@ function Tile({
   className?: string;
 }) {
   return (
-    <Card className={className}>
+    <Card className={`p-0 ${className ?? ""}`}>
       <CardContent className="flex flex-col gap-2.5 p-3.5 @container">
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-semibold uppercase tracking-wider text-muted">
           {icon && <GameIcon folder="Items" name={icon} className="size-5 object-contain" />}
           {title}
           {aside && (
-            <span className="ml-auto flex items-center gap-1.5 font-normal normal-case tracking-normal">
+            <span className="ml-auto flex items-center gap-1.5 whitespace-nowrap font-normal normal-case tracking-normal">
               {aside}
             </span>
           )}
@@ -76,6 +78,14 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
 export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
   const [info, setInfo] = useState(() => readPlayer(parsed));
   const [moneySpent] = useState(() => readMoneySpent(parsed));
+  const [party] = useState(() => readParty(parsed));
+  /** A character the player has not met yet has no name until the game asks
+   *  for one on recruitment; writing one here would pre-empt that prompt. A
+   *  name the game already set (Katie) stays editable. */
+  const notMetYet = (i: number, name: string) => {
+    const slot = party[DISPLAY_ORDER[i]];
+    return name === "" && !(slot?.exists && slot.speciesId !== 0);
+  };
   const bump = () => setInfo(readPlayer(parsed));
 
   return (
@@ -105,7 +115,10 @@ export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
                     label={NAME_LABELS[i] ?? `Name slot ${i}`}
                     value={name}
                     maxBytes={36}
+                    disabled={notMetYet(i, name)}
+                    placeholder={notMetYet(i, name) ? "Not met yet" : undefined}
                     onCommit={(v) => {
+                      if (notMetYet(i, name)) return;
                       writeName(parsed, i, v);
                       bump();
                     }}
@@ -128,15 +141,9 @@ export function PlayerPanel({ parsed }: { parsed: ParsedSave }) {
             }}
           />
           <Labeled label="Spent">
-            <InputGroupRoot className="min-w-0 flex-1 opacity-70">
-              <InputGroupInput
-                aria-label="Money spent (read-only)"
-                readOnly
-                type="text"
-                className="w-0 min-w-0 flex-1 text-right font-mono"
-                value={moneySpent.toLocaleString()}
-              />
-            </InputGroupRoot>
+            <span className="ml-auto font-mono text-sm tabular-nums text-foreground/80">
+              {moneySpent.toLocaleString()}
+            </span>
           </Labeled>
         </Tile>
 

@@ -2,8 +2,8 @@
  *  white / red / gold soul counters on the right. The per-yo-kai list
  *  shows every matchable species; ones the save has no ledger row for
  *  sit faded with a + that creates the row. */
-import { useState } from "react";
-import { Button, Card, CardContent, Input, ScrollShadow, Tabs, toast } from "@heroui/react";
+import { useEffect, useRef, useState } from "react";
+import { Button, Input, ScrollShadow, Tabs, toast } from "@heroui/react";
 import {
   addYoKaiSoulRow,
   clearSlot,
@@ -22,7 +22,7 @@ import { SOULS_CATALOG } from "./lib/souls-catalog";
 import { KONKATSU_LIST } from "./lib/konkatsu-list";
 import { tribeInfo } from "./lib/tribes";
 import type { ParsedSave } from "./lib/save-format";
-import { GameIcon, RarityStars, RollStepper } from "./ui";
+import { GameIcon, RarityStars, RollStepper, removeWithUndo } from "./ui";
 import { SOUL_ART } from "./lib/soul-art";
 import { yokaiRank, yokaiTribe } from "./lib/yokai-base";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
@@ -61,6 +61,11 @@ function LedgerView({
 }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+  // Single-column layouts stack the detail under the list: bring it into view.
+  useEffect(() => {
+    if (selected) detailRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [selected]);
   const shown = KONKATSU_LIST.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
   const match = KONKATSU_LIST.find((m) => m.model === selected);
   const soul = match ? soulsByParam.get(match.paramId) : undefined;
@@ -81,7 +86,7 @@ function LedgerView({
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <ScrollShadow className="max-h-96 rounded-xl border border-border bg-surface-secondary/50 p-2">
+          <ScrollShadow className="max-h-[50dvh] rounded sm:max-h-96-xl border border-border bg-surface-secondary/50 p-2">
             <div className="flex flex-col gap-0.5">
               {shown.map((m) => {
                 const row = soulsByParam.get(m.paramId);
@@ -90,6 +95,7 @@ function LedgerView({
                     key={m.model}
                     type="button"
                     onClick={() => setSelected(m.model)}
+                    aria-pressed={selected === m.model}
                     className={`flex items-center gap-2.5 rounded-lg px-1.5 py-1 text-left transition-colors ${
                       selected === m.model ? "bg-accent-soft" : "hover:bg-surface-hover"
                     }`}
@@ -107,7 +113,12 @@ function LedgerView({
                     {row ? (
                       <span className="hidden shrink-0 items-center gap-2 font-mono text-xs text-muted @md:flex">
                         {TIERS.map(({ which, dot }) => (
-                          <span key={which} className="flex items-center gap-1 tabular-nums">
+                          <span
+                            key={which}
+                            className="flex items-center gap-1 tabular-nums"
+                            title={`${TIER_LABELS[which]} souls`}
+                            aria-label={`${row[which]} ${which} souls`}
+                          >
                             <span className={`size-1.5 rounded-full ${dot}`} />
                             {row[which].toLocaleString("en-US")}
                           </span>
@@ -126,7 +137,10 @@ function LedgerView({
           </ScrollShadow>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-secondary/50 p-3">
+        <div
+          ref={detailRef}
+          className={`flex flex-col gap-3 rounded-xl border border-border bg-surface-secondary/50 p-3 ${!match ? "hidden @md:flex" : ""}`}
+        >
           {!match && (
             <p className="p-4 text-center text-sm text-muted">Select a yo-kai to edit its souls.</p>
           )}
@@ -251,12 +265,12 @@ function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () =>
         <Input
           aria-label="Search souls"
           placeholder="Search souls…"
-          className="ps-8"
+          className="w-full ps-8"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-      <ScrollShadow className="max-h-80 rounded-xl border border-border bg-surface-secondary/50 p-2">
+      <ScrollShadow className="max-h-[50dvh] rounded sm:max-h-80-xl border border-border bg-surface-secondary/50 p-2">
         <div className="flex flex-col gap-0.5">
           {catalog.map((item) => {
             const slot = owned.get(item.crc);
@@ -307,8 +321,12 @@ function SoulBagList({ parsed, onEdited }: { parsed: ParsedSave; onEdited: () =>
                       aria-label={`Remove ${item.name}`}
                       className="text-muted"
                       onPress={() => {
-                        clearSlot(parsed, def, slot.index);
-                        onEdited();
+                        removeWithUndo(
+                          parsed,
+                          `Removed ${item.name}.`,
+                          () => clearSlot(parsed, def, slot.index),
+                          onEdited,
+                        );
                       }}
                     >
                       <TrashIcon size={14} />
@@ -357,39 +375,37 @@ export function SoulsPanel({ parsed }: { parsed: ParsedSave }) {
   };
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-2.5 p-3.5">
-        <Tabs aria-label="Soul sections">
-          <Tabs.ListContainer>
-            <Tabs.List>
-              <Tabs.Tab key="bag" id="bag">
-                <Tabs.Indicator />
-                Soul bag
-              </Tabs.Tab>
-              <Tabs.Tab key="ledger" id="ledger">
-                <Tabs.Indicator />
-                Yo-kai souls
-              </Tabs.Tab>
-            </Tabs.List>
-          </Tabs.ListContainer>
-          <Tabs.Panel key="bag" id="bag">
-            <div className="flex flex-col gap-2.5 pt-2.5">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Craft and summon materials
-                </p>
-                <Button size="sm" variant="outline" className="ml-auto" onPress={giveAll}>
-                  Give every soul ×99
-                </Button>
-              </div>
-              <SoulBagList parsed={parsed} onEdited={rerender} />
+    <div className="flex flex-col gap-2.5">
+      <Tabs variant="secondary" aria-label="Soul sections">
+        <Tabs.ListContainer>
+          <Tabs.List>
+            <Tabs.Tab key="bag" id="bag">
+              <Tabs.Indicator />
+              Soul bag
+            </Tabs.Tab>
+            <Tabs.Tab key="ledger" id="ledger">
+              <Tabs.Indicator />
+              Yo-kai souls
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs.ListContainer>
+        <Tabs.Panel key="bag" id="bag" className="p-0">
+          <div className="flex flex-col gap-2.5 pt-2.5">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Craft and summon materials
+              </p>
+              <Button size="sm" variant="outline" className="ml-auto" onPress={giveAll}>
+                Give every soul ×99
+              </Button>
             </div>
-          </Tabs.Panel>
-          <Tabs.Panel key="ledger" id="ledger">
-            <LedgerView parsed={parsed} soulsByParam={soulsByParam} onEdited={rerender} />
-          </Tabs.Panel>
-        </Tabs>
-      </CardContent>
-    </Card>
+            <SoulBagList parsed={parsed} onEdited={rerender} />
+          </div>
+        </Tabs.Panel>
+        <Tabs.Panel key="ledger" id="ledger" className="p-0">
+          <LedgerView parsed={parsed} soulsByParam={soulsByParam} onEdited={rerender} />
+        </Tabs.Panel>
+      </Tabs>
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   InputGroupPrefix,
   InputGroupRoot,
   InputGroupSuffix,
+  toast,
 } from "@heroui/react";
 import { SlotText } from "slot-text/react";
 import { play } from "cuelume";
@@ -610,12 +611,16 @@ export function NameField({
   maxBytes,
   onCommit,
   className = "w-full",
+  disabled,
+  placeholder,
 }: {
   label: string;
   value: string;
   maxBytes: number;
   onCommit: (v: string) => void;
   className?: string;
+  disabled?: boolean;
+  placeholder?: string;
 }) {
   const [text, setText] = useState<string | null>(null);
   const shown = text ?? value;
@@ -629,6 +634,8 @@ export function NameField({
         aria-invalid={invalid || undefined}
         className={`${className} ${invalid ? ERROR_RING : ""}`}
         value={shown}
+        disabled={disabled}
+        placeholder={placeholder}
         title={`Max ${maxBytes} bytes (UTF-8)`}
         onChange={(e) => {
           setText(e.target.value);
@@ -654,4 +661,26 @@ export function LabeledHint({ label, children }: { label: string; children: Reac
       {children}
     </label>
   );
+}
+
+/** Run a removal and offer a real Undo: the toast restores the exact bytes
+ *  from just before the removal (removals only rewrite bytes in place). */
+export function removeWithUndo(
+  parsed: { data: Uint8Array },
+  message: string,
+  apply: () => void,
+  refresh: () => void,
+): void {
+  const snapshot = parsed.data.slice();
+  apply();
+  refresh();
+  toast.success(message, {
+    actionProps: {
+      children: "Undo",
+      onPress: () => {
+        parsed.data.set(snapshot);
+        refresh();
+      },
+    },
+  });
 }

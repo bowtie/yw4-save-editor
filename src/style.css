@@ -56,3 +56,30 @@ body {
     opacity: 0;
   }
 }
+
+/* Hints use the muted tone for tiny text; lift it a little for contrast on
+   the dark surface. */
+.dark {
+  --muted: color-mix(in oklab, var(--foreground) 72%, var(--background));
+}
+
+/* Touch screens: comfortable 44px targets for buttons, tabs and checkboxes. */
+@media (pointer: coarse) {
+  button,
+  [role="tab"],
+  [role="checkbox"],
+  .checkbox {
+    min-height: 44px;
+  }
+  button.button--icon-only {
+    min-width: 44px;
+  }
+  .checkbox,
+  .checkbox__content {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
