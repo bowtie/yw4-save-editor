@@ -1,6 +1,7 @@
 /** Game-art image helpers and small shared bits for the panels. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Button,
   Card,
   CardContent,
   Input,
@@ -8,6 +9,7 @@ import {
   InputGroupPrefix,
   InputGroupRoot,
   InputGroupSuffix,
+  Modal,
   Tabs,
   toast,
 } from "@heroui/react";
@@ -722,18 +724,22 @@ export function SubTabs({
   value,
   onChange,
   tabs,
+  readOnly = false,
 }: {
   label: string;
   value: string;
   onChange: (id: string) => void;
-  tabs: { id: string; label: string }[];
+  tabs: { id: string; label: string; count?: number }[];
+  /** Show the state only: the pills can't be clicked, a separate control
+   *  changes the selection. */
+  readOnly?: boolean;
 }) {
   return (
     <Tabs
       aria-label={label}
       selectedKey={value}
       onSelectionChange={(key) => onChange(String(key))}
-      className="w-auto shrink-0 self-start"
+      className={`w-auto shrink-0 self-start ${readOnly ? "pointer-events-none select-none" : ""}`}
     >
       <Tabs.ListContainer>
         <Tabs.List>
@@ -741,6 +747,11 @@ export function SubTabs({
             <Tabs.Tab key={t.id} id={t.id} className="whitespace-nowrap">
               <Tabs.Indicator />
               {t.label}
+              {t.count !== undefined && (
+                <span className="ml-2 rounded-full bg-foreground/10 px-1.5 text-[11px] font-medium tabular-nums">
+                  {t.count}
+                </span>
+              )}
             </Tabs.Tab>
           ))}
         </Tabs.List>
@@ -781,5 +792,60 @@ export function Tile({
         {children}
       </CardContent>
     </Card>
+  );
+}
+
+/** "Are you sure?" dialog for removals that are hard to take back. Mounted
+ *  only while open, like the app's other dialogs: closing unmounts it. */
+export function ConfirmDialog({
+  title,
+  body,
+  confirmLabel,
+  cancelLabel = "Keep",
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const state = useMemo(
+    () => ({
+      isOpen: true,
+      setOpen: (open: boolean) => {
+        if (!open) onCancel();
+      },
+      open: () => {},
+      close: onCancel,
+      toggle: () => {},
+    }),
+    [onCancel],
+  );
+  return (
+    <Modal state={state}>
+      <Modal.Backdrop className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <Modal.Container className="pointer-events-auto w-full max-w-md">
+          <Modal.Dialog aria-label={title}>
+            <Modal.Header>
+              <Modal.Heading>{title}</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body>
+              <p className="text-sm text-muted">{body}</p>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onPress={onCancel}>
+                {cancelLabel}
+              </Button>
+              <Button variant="danger" onPress={onConfirm}>
+                {confirmLabel}
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }

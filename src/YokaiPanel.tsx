@@ -24,8 +24,13 @@ import {
   RollStepper,
   removeWithUndo,
   Tile,
+  SubTabs,
+  ConfirmDialog,
 } from "./ui";
 import { PlusIcon, SearchIcon, TrashIcon } from "./icons";
+
+/** Yo-kai the add picker offers (battle-only dictionary entries are not addable). */
+const ROSTER_TOTAL = PLAYABLE_YOKAI.filter((y) => y.section === "yokai").length;
 
 export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
   const [search, setSearch] = useState("");
@@ -54,7 +59,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
 
   const rosterById = new Map(PLAYABLE_YOKAI.map((y) => [y.id, y]));
   const movesById = new Map(YOKAI_MOVES);
-  /** Individuals per species already in the roster; the game stores
+  /** Individuals per species already in the collection; the game stores
    *  individuals (party sets reference handles), so duplicates are legal,
    *  but they deserve a badge and a warning so copies are deliberate. */
   const ownedCount = new Map<number, number>();
@@ -100,7 +105,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
     const copies = ownedCount.get(y.id) ?? 0;
     // Only summonable yo-kai can exist more than once; the rest are unique.
     if (copies > 0 && !isSummonable(y.icon)) {
-      toast.warning(`${y.name} is unique and already in your roster`, {
+      toast.warning(`${y.name} is unique and already in your collection`, {
         description: "Only summonable yo-kai can have more than one copy.",
       });
       return;
@@ -117,6 +122,15 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
     });
   };
 
+  /** A unique yo-kai being removed, waiting for the player to confirm. */
+  const [confirming, setConfirming] = useState<PartySlot | null>(null);
+
+  const requestRemove = (s: PartySlot) => {
+    // Summonable yo-kai can be summoned again; unique ones deserve a second look.
+    if (isSummonable(iconFor(s))) removeYoKai(s);
+    else setConfirming(s);
+  };
+
   const removeYoKai = (s: PartySlot) => {
     const name = speciesFor(s);
     removeWithUndo(
@@ -131,14 +145,18 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
   return (
     <Tile>
       <div className="flex min-h-10 items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-          {adding ? "Roster" : "Collection"}
-          {!adding && (
-            <span className="ml-2 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-foreground">
-              {owned.length}
-            </span>
-          )}
-        </p>
+        {/* Both lists as pills, like the other tabs; they only show where you
+            are, and the Add / Back button on the right moves between them. */}
+        <SubTabs
+          label="Yo-kai lists"
+          readOnly
+          value={adding ? "roster" : "collection"}
+          onChange={() => {}}
+          tabs={[
+            { id: "collection", label: "Collection", count: owned.length },
+            { id: "roster", label: "Roster", count: ROSTER_TOTAL },
+          ]}
+        />
         {adding ? (
           <Button
             variant="secondary"
@@ -243,7 +261,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
         >
           {!slot && (
             <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
-              <p className="text-sm font-medium">{owned.length} yo-kai in your roster</p>
+              <p className="text-sm font-medium">{owned.length} yo-kai in your collection</p>
               <p className="text-xs text-muted">
                 Pick one on the left to edit its name, level and EXP, or add a new one.
               </p>
@@ -279,7 +297,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
                   isIconOnly
                   className="shrink-0 text-muted hover:text-danger"
                   aria-label={`Remove ${species}`}
-                  onPress={() => removeYoKai(slot)}
+                  onPress={() => requestRemove(slot)}
                 >
                   <TrashIcon size={15} />
                 </Button>
@@ -326,6 +344,18 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
           )}
         </div>
       </div>
+      {confirming && (
+        <ConfirmDialog
+          title={`Remove ${speciesFor(confirming)}?`}
+          body={`${speciesFor(confirming)} is a unique yo-kai and can't be summoned again. You can add it back from the Roster, but its level, EXP and name start over.`}
+          confirmLabel="Remove"
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => {
+            removeYoKai(confirming);
+            setConfirming(null);
+          }}
+        />
+      )}
     </Tile>
   );
 
