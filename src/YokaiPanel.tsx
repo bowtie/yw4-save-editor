@@ -176,7 +176,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[max(24rem,calc(100dvh-26rem))]">
+          <ScrollShadow className="min-h-0 flex-1 max-h-[50dvh] pr-1 sm:max-h-[18rem]">
             <div className="flex flex-col gap-0.5">
               {adding
                 ? playable.map((y) => {
@@ -254,7 +254,7 @@ export function YokaiPanel({ parsed }: { parsed: ParsedSave }) {
 
         <div
           ref={detailRef}
-          className={`flex flex-col gap-3 @md:border-l @md:border-border @md:pl-4 @md:overflow-y-auto ${!slot ? "hidden @md:flex" : ""}`}
+          className={`flex flex-col gap-6 @md:border-l @md:border-border @md:pl-6 @md:overflow-y-auto ${!slot ? "hidden @md:flex" : ""}`}
         >
           {!slot && (
             <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
